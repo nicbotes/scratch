@@ -1,0 +1,176 @@
+:root {
+  color-scheme: dark;
+  --bg: #05080c;
+  --panel: #0b111a;
+  --accent: #2fffd2;
+  --accent-soft: rgba(47, 255, 210, 0.25);
+  --text: #f2f5ff;
+  --muted: #8ea2c2;
+  --border: #1d2633;
+  font-size: clamp(14px, 1.1vw, 18px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Space Mono", "Fira Mono", Menlo, Consolas, monospace;
+  background: radial-gradient(circle at top, #0f1d2f 0%, #05080c 60%);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  padding: clamp(1.5rem, 3vw, 3rem);
+}
+
+.wrap {
+  width: min(1200px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.intro {
+  text-align: left;
+}
+
+.eyebrow {
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+
+.lede {
+  margin: 0.15rem 0;
+  color: var(--muted);
+}
+
+.terminal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.45),
+    0 0 60px rgba(47, 255, 210, 0.12);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.terminal__output {
+  min-height: 220px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  overflow-y: auto;
+  max-height: 420px;
+}
+
+.terminal__prompt {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.prompt-label {
+  color: var(--muted);
+}
+
+.prompt-symbol {
+  color: var(--accent);
+}
+
+#terminal-input {
+  flex: 1;
+  font: inherit;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  outline: none;
+}
+
+.commands {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.command-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  background: rgba(13, 21, 33, 0.8);
+  cursor: pointer;
+  transition: border-color 160ms, transform 160ms, background 160ms;
+}
+
+.command-card:hover,
+.command-card:focus-visible {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  background: rgba(47, 255, 210, 0.05);
+}
+
+.command-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  color: var(--accent);
+}
+
+.command-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  margin-bottom: 0.4rem;
+}
+
+code {
+  color: var(--accent);
+}
+
+pre {
+  white-space: pre-wrap;
+  background: rgba(5, 8, 12, 0.7);
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 30% 20%, rgba(47, 255, 210, 0.15), transparent 45%),
+    radial-gradient(circle at 70% 30%, rgba(82, 113, 255, 0.12), transparent 40%);
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+
+@media (max-width: 640px) {
+  .terminal__prompt {
+    flex-wrap: wrap;
+  }
+
+  .prompt-label {
+    width: 100%;
+  }
+}
