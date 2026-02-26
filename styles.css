@@ -1,13 +1,12 @@
 :root {
-  color-scheme: dark;
-  --bg: #05080c;
-  --panel: #0b111a;
-  --accent: #2fffd2;
-  --accent-soft: rgba(47, 255, 210, 0.25);
-  --text: #f2f5ff;
-  --muted: #8ea2c2;
-  --border: #1d2633;
-  font-size: clamp(14px, 1.1vw, 18px);
+  font-size: clamp(15px, 1.1vw, 18px);
+  --bg: #03060b;
+  --bg-soft: #0f1320;
+  --text: #eef2ff;
+  --muted: #c6d0f7;
+  --accent: #ffd87d;
+  --accent-soft: rgba(255, 216, 125, 0.2);
+  --border: rgba(255, 255, 255, 0.08);
 }
 
 * {
@@ -17,22 +16,34 @@
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Space Mono", "Fira Mono", Menlo, Consolas, monospace;
-  background: radial-gradient(circle at top, #0f1d2f 0%, #05080c 60%);
+  background: radial-gradient(circle at 20% 20%, rgba(255, 216, 125, 0.15), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(144, 209, 255, 0.18), transparent 32%),
+    var(--bg);
   color: var(--text);
-  display: flex;
-  justify-content: center;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   padding: clamp(1.5rem, 3vw, 3rem);
-}
-
-.wrap {
-  width: min(1200px, 100%);
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-.intro {
+.halo {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg width='400' height='400' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='0.5'%3E%3Cpath d='M0 20h200M0 40h200M0 60h200M0 80h200M0 100h200M0 120h200M0 140h200M0 160h200M0 180h200M20 0v200M40 0v200M60 0v200M80 0v200M100 0v200M120 0v200M140 0v200M160 0v200M180 0v200' /%3E%3C/g%3E%3C/svg%3E") repeat;
+  opacity: 0.25;
+}
+
+.shell {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 2.5vw, 2.5rem);
+}
+
+.hero {
   text-align: left;
 }
 
@@ -45,132 +56,145 @@ body {
 }
 
 h1 {
+  font-family: "Cormorant Garamond", "Times New Roman", serif;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
   margin: 0 0 0.5rem;
-  font-size: clamp(2rem, 5vw, 3.5rem);
 }
 
 .lede {
-  margin: 0.15rem 0;
-  color: var(--muted);
+  max-width: 52ch;
+  color: rgba(230, 236, 255, 0.85);
+  margin: 0 0 1.5rem;
 }
 
-.terminal {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow:
-    0 30px 60px rgba(0, 0, 0, 0.45),
-    0 0 60px rgba(47, 255, 210, 0.12);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.terminal__output {
-  min-height: 220px;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--text);
-  overflow-y: auto;
-  max-height: 420px;
-}
-
-.terminal__prompt {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  border-top: 1px solid var(--border);
-  padding-top: 1rem;
-}
-
-.prompt-label {
-  color: var(--muted);
-}
-
-.prompt-symbol {
-  color: var(--accent);
-}
-
-#terminal-input {
-  flex: 1;
-  font: inherit;
-  background: transparent;
+.btn {
   border: none;
-  color: var(--text);
-  outline: none;
+  border-radius: 999px;
+  padding: 0.85rem 1.6rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0b0f1b;
+  background: linear-gradient(120deg, #ffd87d, #ffc148 60%, #ff9f6e);
+  cursor: pointer;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
-.commands {
+.btn:focus-visible,
+.btn:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+}
+
+.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1rem;
 }
 
-.command-card {
+.card {
+  border-radius: 20px;
+  padding: 1.5rem;
+  background: rgba(6, 10, 18, 0.8);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
-  background: rgba(13, 21, 33, 0.8);
-  cursor: pointer;
-  transition: border-color 160ms, transform 160ms, background 160ms;
+  position: relative;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: hidden;
+  isolation: isolate;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 200ms ease, transform 200ms ease;
 }
 
-.command-card:hover,
-.command-card:focus-visible {
-  border-color: var(--accent);
-  transform: translateY(-2px);
-  background: rgba(47, 255, 210, 0.05);
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 18px;
+  background: radial-gradient(circle at top right, rgba(255, 216, 125, 0.18), transparent 55%);
+  opacity: 0;
+  transition: opacity 240ms ease;
+  z-index: -1;
 }
 
-.command-card h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
-  color: var(--accent);
+.card.card--active {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.command-card p {
+.card:hover::after,
+.card:focus-within::after {
+  opacity: 1;
+}
+
+.tag {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.card-title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.75rem;
   margin: 0;
+  color: var(--text);
+}
+
+.card-body {
+  margin: 0;
+  flex: 1;
+  color: rgba(230, 236, 255, 0.8);
+  line-height: 1.6;
+}
+
+.card-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.card-link:hover,
+.card-link:focus-visible {
+  text-decoration: underline;
+}
+
+.manifesto {
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: rgba(5, 8, 12, 0.75);
+  padding: 1.5rem 1.75rem;
+  font-size: 1.05rem;
+  line-height: 1.7;
   color: var(--muted);
 }
 
-ul {
-  list-style: none;
-  padding: 0;
+.footer {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
 }
 
-ul li {
-  margin-bottom: 0.4rem;
-}
-
-code {
+.footer a {
   color: var(--accent);
+  text-decoration: none;
 }
 
-pre {
-  white-space: pre-wrap;
-  background: rgba(5, 8, 12, 0.7);
-  padding: 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--border);
+.footer a:hover,
+.footer a:focus-visible {
+  text-decoration: underline;
 }
 
-.glow {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 30% 20%, rgba(47, 255, 210, 0.15), transparent 45%),
-    radial-gradient(circle at 70% 30%, rgba(82, 113, 255, 0.12), transparent 40%);
-  mix-blend-mode: screen;
-  opacity: 0.9;
-}
-
-@media (max-width: 640px) {
-  .terminal__prompt {
-    flex-wrap: wrap;
+@media (max-width: 540px) {
+  body {
+    padding: 1.25rem;
   }
 
-  .prompt-label {
-    width: 100%;
+  .card {
+    min-height: auto;
   }
 }
