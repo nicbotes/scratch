@@ -3,55 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ritual Spark · Tiny resets for restless minds</title>
+  <title>Barry Ubsdell Seriousness Institute</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="halo" aria-hidden="true"></div>
-  <main class="shell">
+  <div class="bg" aria-hidden="true"></div>
+  <main class="site">
     <header class="hero">
-      <p class="eyebrow">Ritual Spark</p>
-      <h1>Three tiny rituals to reset your day.</h1>
-      <p class="lede">
-        Tap the cards when you need a micro-reset. Each pull gives you a mind cue, a body shift, and a surroundings tweak.
-      </p>
-      <button id="shuffle" class="btn" type="button" aria-live="polite">Shuffle rituals</button>
+      <div class="hero__media">
+        <img src="barry.jpg" alt="Barry Ubsdell maintaining peak seriousness" loading="lazy" />
+        <span class="badge">100% Stoic Certified</span>
+      </div>
+      <div class="hero__content">
+        <p class="eyebrow">Welcome to</p>
+        <h1>Barry Ubsdell's Seriousness Institute</h1>
+        <p class="lede">A single face. Infinite interpretations. Tap the buttons to explore the emotional multiverse of Barry.</p>
+        <div class="controls">
+          <button id="mood-btn" class="btn">Generate Barry Mood</button>
+          <button id="fact-btn" class="btn btn--ghost">Barry Lore Drop</button>
+        </div>
+      </div>
     </header>
 
-    <section class="grid" aria-live="polite">
-      <article class="card" data-channel="mind">
-        <p class="tag">Mind</p>
-        <h2 class="card-title"></h2>
-        <p class="card-body"></p>
-        <a class="card-link" href="#" target="_blank" rel="noreferrer noopener">Deepen it →</a>
+    <section class="panel mood" aria-live="polite">
+      <h2>Live Mood Feed</h2>
+      <p id="mood-output">Barry is currently at "Default Face"—the universe remains stable.</p>
+      <div class="meter">
+        <div class="meter__bar" id="mood-meter" style="width: 42%"></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h3>Barry Lore</h3>
+        <p id="fact-output">Legend says Barry can freeze time by maintaining eye contact with an HVAC vent.</p>
       </article>
-      <article class="card" data-channel="body">
-        <p class="tag">Body</p>
-        <h2 class="card-title"></h2>
-        <p class="card-body"></p>
-        <a class="card-link" href="#" target="_blank" rel="noreferrer noopener">Deepen it →</a>
+      <article class="panel">
+        <h3>Seriousness Challenges</h3>
+        <ul class="challenges">
+          <li>Hold Barry's stare for 8 seconds without apologizing.</li>
+          <li>Tell Barry a joke. If he nods, you win.</li>
+          <li>Ask Barry his coffee order. Receive a TED Talk instead.</li>
+        </ul>
       </article>
-      <article class="card" data-channel="space">
-        <p class="tag">Surroundings</p>
-        <h2 class="card-title"></h2>
-        <p class="card-body"></p>
-        <a class="card-link" href="#" target="_blank" rel="noreferrer noopener">Deepen it →</a>
+      <article class="panel panel--score">
+        <h3>Smile Probability</h3>
+        <p class="score" id="smile-score">2.7%</p>
+        <button id="boost-btn" class="btn btn--tiny">Attempt boost</button>
+        <p class="score-note" id="boost-note">Boost attempts logged for future myth-making.</p>
       </article>
     </section>
 
-    <section class="manifesto">
-      <p>
-        Ritual Spark is a tiny altar of prompts. Use it between meetings, before you dive into code, or when the toddler finally naps. 
-        Three cues. Sixty seconds each. Enough to remind your nervous system you&rsquo;re steering the ship.
-      </p>
-    </section>
+    <footer class="footer">
+      <p>Site forged by Black Thorn · View source on <a href="https://github.com/nicbotes/scratch" target="_blank" rel="noreferrer noopener">GitHub</a></p>
+    </footer>
   </main>
-  <footer class="footer">
-    <p>Built by Black Thorn for nic · <a href="https://github.com/nicbotes/scratch" target="_blank" rel="noreferrer noopener">View source</a></p>
-  </footer>
 
   <script type="module" src="script.js"></script>
 </body>
