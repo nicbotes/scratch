@@ -33,6 +33,101 @@
         </div>
       </section>
 
+      <section class="product-lab" id="funeral-practice">
+        <header class="product-header">
+          <p class="eyebrow">FUNERAL PRODUCT PROTOTYPE</p>
+          <h2>Funeral Practice — demo branch brief</h2>
+          <p>
+            Target market locked to 60–80 year olds, debit-order collection only, R5 monthly premium delivering a guaranteed R10k payout. Ultra-light scaffolding so you can sanity-check positioning before we wire actual Root flows.
+          </p>
+        </header>
+        <div class="product-grid">
+          <article class="product-story">
+            <p class="tag">Working name: <strong>Funeral Practice</strong> (rename if that’s too dark)</p>
+            <ul class="feature-list">
+              <li>Age-gated onboarding (ID number + selfie proof-of-life) to keep the 60–80 slice honest.</li>
+              <li>Flat R5/mo debit order, collected on the 25th with automated NSF re-hit on the 1st.</li>
+              <li>Instant R10k cash-out to beneficiary wallet or EFT within 12 business hours.</li>
+              <li>Beneficiary capture (up to 3) baked into onboarding so claims need zero follow-up.</li>
+              <li>WhatsApp + SMS status nudges for every debit event and when the reserve drops below 6 months.</li>
+            </ul>
+            <h3>Assumptions driving this draft</h3>
+            <ul class="assumption-list">
+              <li>Premium stays fixed at R5 — we win through volume + cross-sell, not margin.</li>
+              <li>Reserve fund target is 24 months of contributions per policyholder.</li>
+              <li>Collections via authenticated debit order (AC/DebiCheck) is non-negotiable.</li>
+              <li>No medical underwriting beyond age band + IDV selfie — speed over paperwork.</li>
+              <li>Claim validation done via Home Affairs death cert lookup + beneficiary selfie.</li>
+            </ul>
+          </article>
+          <article class="quote-card">
+            <div class="input-group">
+              <label for="age-input">Preview the experience</label>
+              <input type="range" id="age-input" min="60" max="80" value="65" />
+              <div class="age-readout"><span id="age-value">65</span> yrs old</div>
+            </div>
+            <div class="quote-stats">
+              <div class="stat">
+                <span class="label">Monthly debit</span>
+                <span class="value">R5</span>
+                <small>Fixed — no age loading</small>
+              </div>
+              <div class="stat">
+                <span class="label">Guaranteed cover</span>
+                <span class="value">R10 000</span>
+                <small>Paid within 12 hours</small>
+              </div>
+              <div class="stat">
+                <span class="label">Reserve runway</span>
+                <span class="value"><span id="reserve-months">0</span> months · ~<span id="reserve-years">0</span> yrs</span>
+                <small>Based on contributions vs payout</small>
+              </div>
+            </div>
+            <div class="risk-meter">
+              <div class="risk-head">
+                <span>Risk intensity</span>
+                <strong id="risk-score">0%</strong>
+              </div>
+              <div class="risk-bar">
+                <div class="risk-fill" id="risk-fill"></div>
+              </div>
+              <p id="risk-copy">Dial the age to see how aggressively we need to top up reserves.</p>
+            </div>
+            <div class="debit-notes">
+              <h4>Debit-order choreography</h4>
+              <ul>
+                <li>Primary hit: 25th each month · DebiCheck mandate stored.</li>
+                <li>Auto re-present: 1st of following month if unpaid.</li>
+                <li>Escalations: WhatsApp nudges + agent call once balance >R15 in arrears.</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="flow">
+        <h2>Collections &amp; claims flow</h2>
+        <ol class="flow-steps">
+          <li>
+            <h3>1. Capture</h3>
+            <p>Mobile-first form, ID scan, selfie match, beneficiary list, and immediate DebiCheck mandate creation.</p>
+          </li>
+          <li>
+            <h3>2. Debit execution</h3>
+            <p>R5 pulled on the 25th, status piped to WhatsApp + email. If it bounces, re-hit on the 1st and flag for agent follow-up.</p>
+          </li>
+          <li>
+            <h3>3. Reserve monitoring</h3>
+            <p>We track reserve runway per policy. Drop below 12 months? Trigger retention script + optional top-up prompt.</p>
+          </li>
+          <li>
+            <h3>4. Claim trigger</h3>
+            <p>Death notice ingested (Home Affairs or beneficiary). Auto-verify docs, confirm beneficiary selfie, push R10k payout in under 12 hours.</p>
+          </li>
+        </ol>
+        <p class="flow-footnote">This is intentionally thin — once Nic stops wincing at the name we wire it into real Root workflows.</p>
+      </section>
+
       <section class="grid">
         <article>
           <h2>Operating Parameters</h2>
