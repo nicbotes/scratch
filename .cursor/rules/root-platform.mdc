@@ -1,0 +1,68 @@
+---
+description: Cross-cutting gotchas for Root Platform product module development
+globs: ["**/*.js", "**/*.json", "**/*.html", ".root-config.json"]
+alwaysApply: false
+---
+
+# Root Platform: Cross-Cutting Gotchas
+
+## JSON files — no trailing commas
+
+JSON files (`claims-blocks.json`, `.root-config.json`, schema files) must be **strictly valid JSON**. After removing or reordering elements, always verify no trailing commas remain. Validate with `node -e "JSON.parse(require('fs').readFileSync('<file>', 'utf8'))"` before pushing.
+
+## Covered life array key mapping
+
+When accessing covered life arrays in `policy.module`, the keys are **not** simply pluralised:
+
+```js
+const arrayKeyMap = {
+  spouse: 'spouse',              // NOT 'spouses'
+  child: 'children',
+  parent: 'parents',
+  extended_family: 'extended_family',
+};
+const arrayKey = arrayKeyMap[life_type];
+const lives = policy.module[arrayKey] || [];
+```
+
+## `update_policy` action uses camelCase data keys
+
+The `update_policy` action's `data` object uses **camelCase** field names, not snake_case:
+
+```js
+{
+  name: 'update_policy',
+  data: {
+    monthlyPremium: 15000,
+    sumAssured: 10000000,
+    basePremium: 15000,
+    module: { ...policy.module, updated_field: 'value' },
+  },
+}
+```
+
+## Module object is a full replacement
+
+When returning a `module` object from `getAlteration`, `getQuote`, `getApplication`, or an `update_policy` action, the returned module **completely replaces** the existing one. Always spread the existing module first:
+
+```js
+module: { ...policy.module, changed_key: newValue }
+```
+
+## Joi v11 — use static `Joi.validate()`
+
+The platform uses Joi **v11.3.4**. Always use the static method:
+
+```js
+const result = Joi.validate(data, schema, { abortEarly: false });
+```
+
+Do NOT use `schema.validate(data)` — that is Joi v17+ syntax.
+
+## Schema files must be arrays
+
+All schema files (`quote-schema.json`, `application-schema.json`, `workflows/alteration-hooks/<key>.json`) must contain a JSON **array**, not a JSON Schema object. Start with `[]` if generating later.
+
+## `rp push` blocks on confirmation
+
+Always use `rp push -f` or `echo 'y' | rp push` to avoid blocking on interactive confirmation prompts.
