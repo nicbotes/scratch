@@ -60,6 +60,13 @@ These skills guide implementation of the core code hooks and configuration that 
 | `/dev-payment-hooks` | Implement payment success/failure/reversal and payment coupon hooks |
 | `/dev-claims-hook` | Implement claims lifecycle hooks (blocks, decisions, claim events) |
 
+### Embed (Customer-Facing Flows)
+
+| Skill | Purpose |
+|---|---|
+| `/dev-embed-sales` | Configure the white-label quote-to-issue embed (landing, quote, personal details, payment, confirmation) |
+| `/dev-embed-manage` | Configure the policy self-service embed (policy view, alterations, beneficiaries, payments, claims) |
+
 ### Cross-cutting References
 
 | Skill | Purpose |
@@ -96,6 +103,8 @@ These skills guide implementation of the core code hooks and configuration that 
   ↓
 /dev-schema            ← generate or update input form schemas
 /dev-documents         ← build policy schedule and terms templates
+/dev-embed-sales       ← configure customer-facing quote-to-issue embed
+/dev-embed-manage      ← configure policy self-service embed
   ↓
 /rp-dev                ← diff + push new draft
   ↓
