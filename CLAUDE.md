@@ -66,6 +66,7 @@ These skills guide implementation of the core code hooks and configuration that 
 |---|---|
 | `/dev-actions` | Complete reference for all action objects returned by hooks |
 | `/dev-sdk` | Use Root SDK (`root` global) for policies, data stores, notifications, secrets |
+| `/dev-notifications` | Trigger email and SMS notifications (actions, SDK, custom MJML) |
 | `/dev-schema` | Create/update quote, application, and alteration JSON schemas |
 | `/dev-documents` | Build Handlebars HTML document templates (policy schedule, terms) |
 | `/dev-git-workflow` | Set up git branching, GitHub Actions CI/CD, and team collaboration |
