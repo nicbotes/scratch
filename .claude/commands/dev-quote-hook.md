@@ -1,16 +1,28 @@
 # Dev Skill: Quote Hook
 
-Implement or update the quote hook for this product module. The quote hook defines how premiums are calculated and what data is collected from customers at the quoting stage.
+Implement `validateQuoteRequest` and `getQuote` — the functions that validate rating inputs and calculate a premium.
 
-## The Quote Hook Has Two Parts
+## Steps
 
-### 1. `validateQuoteRequest(data)`
-Called first. Validates the raw quote request data using Joi before any premium calculation.
+1. Read existing quote hook files in `code/` (look for files named like `*quote*`)
+2. Review `quote-schema.json` to understand what fields are currently collected
+3. Implement `validateQuoteRequest(data)` using Joi — validate all rating factors
+4. Implement `getQuote(data)` — calculate premium and return a `QuotePackage`
+5. Store everything needed by downstream hooks (application, policy, documents) in `module`
+6. If creating new files, add them to `codeFileOrder` in `.root-config.json`
+7. Write unit tests in `code/unit-tests/` covering the happy path and key edge cases
+8. Run `/rp-dev` to push the draft
+
+→ If you changed the collected fields, run `/dev-schema` to regenerate `quote-schema.json`
+→ Run `/rp-test` to verify
+
+---
+
+## Reference: validateQuoteRequest
 
 ```js
 const validateQuoteRequest = (data) => {
   const schema = Joi.object({
-    // Define your rating factors here
     age: Joi.number().integer().min(18).max(65).required(),
     cover_amount: Joi.number().min(10000).max(5000000).required(),
   });
@@ -20,59 +32,29 @@ const validateQuoteRequest = (data) => {
 };
 ```
 
-### 2. `getQuote(data)`
-Called after validation. Receives the validated data and must return a `QuotePackage`.
-
-```js
-const getQuote = (data) => {
-  const { age, cover_amount } = data;
-
-  // Calculate premium
-  const monthly_premium = /* your rating logic */;
-
-  return {
-    package_name: 'Standard Cover',
-    sum_assured: cover_amount,
-    suggested_premium: monthly_premium,
-    module: {
-      // Store any data you need on the policy later
-      age,
-      cover_amount,
-    },
-  };
-};
-```
-
-## QuotePackage Shape
+## Reference: QuotePackage shape
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `package_name` | string | yes | Displayed to customer |
 | `sum_assured` | number | yes | Cover amount in cents |
 | `suggested_premium` | number | yes | Monthly premium in cents |
-| `module` | object | yes | Custom data — available in application and policy hooks |
-| `input_data` | object | no | Echo back validated input |
+| `module` | object | yes | Custom data — available in all downstream hooks |
+| `costs_and_charges` | array | no | Breakdown of premium components |
 
-## File Placement
+```js
+const getQuote = (data) => {
+  const monthly_premium = Math.round(data.cover_amount * getRate(data.age));
+  return {
+    package_name: 'Standard Cover',
+    sum_assured: data.cover_amount,
+    suggested_premium: monthly_premium,
+    module: { age: data.age, cover_amount: data.cover_amount },
+  };
+};
+```
 
-By convention, place in a numbered file inside `code/`:
-- `code/02-validate-quote.js` — validation function
-- `code/03-quote-hook.js` — getQuote function
-
-Order must be reflected in `.root-config.json` under `codeFileOrder`.
-
-## Steps
-
-1. Read the existing quote hook files (if any)
-2. Understand what rating factors are currently being collected
-3. Implement or update `validateQuoteRequest` with Joi schema matching the `quote-schema.json` fields
-4. Implement or update `getQuote` with the premium calculation logic
-5. Ensure the `module` object contains all data needed downstream (application, policy hooks)
-6. If changing rating factors, update `quote-schema.json` accordingly (or run `/rp-generate`)
-7. Write or update unit tests in `code/unit-tests/` to cover key scenarios
-8. Run `/rp-dev` to push the draft
-
-## Common Patterns
+## Reference: common patterns
 
 **Age-banded rates:**
 ```js
@@ -82,19 +64,16 @@ const getRate = (age) => {
   if (age < 50) return 0.0028;
   return 0.0045;
 };
-const monthly_premium = Math.round(cover_amount * getRate(age));
 ```
 
 **Costs and charges breakdown:**
 ```js
 const risk_premium = Math.round(cover_amount * rate);
 const commission = Math.round(risk_premium * 0.15);
-const suggested_premium = risk_premium + commission;
-
 return {
   package_name: 'Standard',
   sum_assured: cover_amount,
-  suggested_premium,
+  suggested_premium: risk_premium + commission,
   module: { ... },
   costs_and_charges: [
     { type: 'risk_premium', value: risk_premium },

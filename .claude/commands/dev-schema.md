@@ -1,25 +1,22 @@
 # Dev Skill: Schema Development
 
-Create or update the JSON schemas that define the input forms for quotes, applications, and alteration hooks. Schemas configure what fields are shown in the Root dashboard UI and validated on the API.
+Create or update the JSON schemas that configure quote, application, and alteration input forms.
 
-## How Schemas Work
+## Steps
 
-- `quote-schema.json` — fields shown on the quoting form
-- `application-schema.json` — fields shown on the application form
-- `alteration-hooks/<type>/alteration-schema.json` — fields for each alteration type
-- Schemas are JSON documents following Root's schema format
-- The **recommended workflow**: write Joi validation in code hooks first, then run `/rp-generate` to auto-generate schemas from your Joi — don't write JSON schemas by hand
+The recommended path is Joi-first — write validation in the hook, generate the schema from it:
 
-## Recommended Workflow
+1. Ensure Joi validation is implemented in the relevant hook (`validateQuoteRequest`, `validateApplicationRequest`, etc.)
+2. Run `/rp-generate` (or `/rp-generate quote` / `/rp-generate application` / `/rp-generate alterations`) to auto-generate schemas from the Joi
+3. Review the output in `./sandbox/` — check field labels, types, and order
+4. Copy approved schemas to `quote-schema.json` and/or `application-schema.json` in the module root
+5. Push with `/rp-dev` and test in the sandbox dashboard to confirm the form renders correctly
 
-1. Write your Joi validation in the hook files (`validateQuoteRequest`, `validateApplicationRequest`, etc.)
-2. Run `/rp-generate` to generate schemas from those Joi definitions
-3. Review the generated schemas in `./sandbox`
-4. Copy approved schemas to `quote-schema.json` / `application-schema.json`
+→ If hand-editing is needed (labels, display hints, field order), see reference below
 
-## Manual Schema Structure
+---
 
-If you need to write or edit schemas directly:
+## Reference: JSON schema structure
 
 ```json
 {
@@ -37,33 +34,25 @@ If you need to write or edit schemas directly:
     "cover_amount": {
       "type": "number",
       "title": "Cover Amount",
-      "description": "Amount of cover in Rands",
-      "minimum": 10000,
-      "maximum": 5000000,
       "x-display": "currency"
     }
   }
 }
 ```
 
-## Field Types and UI Hints
+## Reference: field types and UI hints
 
 | JSON Schema type | UI rendered |
 |---|---|
 | `string` | Text input |
 | `integer` / `number` | Number input |
-| `boolean` | Checkbox/toggle |
-| `string` with `enum` | Dropdown select |
-| `array` | Repeating field group |
+| `boolean` | Checkbox |
+| `string` with `enum` | Dropdown |
+| `array` | Repeating group |
 
-**Custom `x-` display hints:**
-```json
-"x-display": "currency"       // Format as currency
-"x-display": "date"           // Date picker
-"x-display": "textarea"       // Multi-line text
-```
+`x-display` values: `"currency"`, `"date"`, `"textarea"`
 
-## Enums (Dropdowns)
+## Reference: enum (dropdown)
 
 ```json
 "gender": {
@@ -74,21 +63,7 @@ If you need to write or edit schemas directly:
 }
 ```
 
-## Nested Objects
-
-```json
-"address": {
-  "type": "object",
-  "title": "Address",
-  "properties": {
-    "street": { "type": "string", "title": "Street" },
-    "city": { "type": "string", "title": "City" }
-  },
-  "required": ["street", "city"]
-}
-```
-
-## Arrays (Beneficiaries)
+## Reference: beneficiary array
 
 ```json
 "beneficiaries": {
@@ -101,22 +76,8 @@ If you need to write or edit schemas directly:
     "properties": {
       "first_name": { "type": "string", "title": "First Name" },
       "last_name": { "type": "string", "title": "Last Name" },
-      "percentage": {
-        "type": "integer",
-        "title": "Percentage",
-        "minimum": 1,
-        "maximum": 100
-      }
+      "percentage": { "type": "integer", "title": "Percentage", "minimum": 1, "maximum": 100 }
     }
   }
 }
 ```
-
-## Steps
-
-1. Identify all fields needed for the quote / application / alteration forms
-2. Write Joi validation in the corresponding hook files first
-3. Run `/rp-generate` to auto-generate JSON schemas
-4. Review the output in `./sandbox` and check field labels and types
-5. If hand-editing: update `quote-schema.json` and/or `application-schema.json`
-6. Validate the schema renders correctly by pushing with `/rp-dev` and testing in sandbox dashboard
