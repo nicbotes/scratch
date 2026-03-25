@@ -34,6 +34,16 @@ These skills wrap `rp` CLI commands for the full push/test/publish lifecycle.
 
 These skills guide implementation of the core code hooks and configuration that make up a product module.
 
+### Configuration
+
+| Skill | Purpose |
+|---|---|
+| `/dev-config` | Configure `.root-config.json` general product settings (scheme type, policyholder, lapse, NTU, documents) |
+| `/dev-billing` | Configure billing settings (frequency, payment methods, retry, pro-rata, lapse rules) |
+| `/dev-globals` | Runtime globals reference (Joi v11.3.4 extensions, moment, node-fetch, env vars) |
+
+### Core Hooks
+
 | Skill | Purpose |
 |---|---|
 | `/dev-quote-hook` | Implement `validateQuoteRequest` and `getQuote` |
@@ -41,7 +51,21 @@ These skills guide implementation of the core code hooks and configuration that 
 | `/dev-policy-hook` | Implement `getPolicy` (called at policy issuance) |
 | `/dev-alteration-hook` | Implement alteration hooks for post-issuance amendments |
 | `/dev-reactivation-hook` | Implement `getReactivationOptions` for lapsed/cancelled policies |
+
+### Event Hooks
+
+| Skill | Purpose |
+|---|---|
 | `/dev-lifecycle-hooks` | Implement lifecycle hooks and scheduled functions with actions |
+| `/dev-payment-hooks` | Implement payment success/failure/reversal and payment coupon hooks |
+| `/dev-claims-hook` | Implement claims lifecycle hooks (blocks, decisions, claim events) |
+
+### Cross-cutting References
+
+| Skill | Purpose |
+|---|---|
+| `/dev-actions` | Complete reference for all action objects returned by hooks |
+| `/dev-sdk` | Use Root SDK (`root` global) for policies, data stores, notifications, secrets |
 | `/dev-schema` | Create/update quote, application, and alteration JSON schemas |
 | `/dev-documents` | Build Handlebars HTML document templates (policy schedule, terms) |
 | `/dev-git-workflow` | Set up git branching, GitHub Actions CI/CD, and team collaboration |
@@ -53,11 +77,22 @@ These skills guide implementation of the core code hooks and configuration that 
   ↓
 /rp-clone or /rp-init  ← get the product module locally
   ↓
+/dev-config            ← configure product settings (.root-config.json)
+/dev-billing           ← configure billing rules
+/dev-globals           ← understand runtime environment (Joi, moment, etc.)
+  ↓
 /dev-quote-hook        ← implement rating and quoting logic
 /dev-application-hook  ← implement application processing
 /dev-policy-hook       ← implement policy issuance logic
 /dev-alteration-hook   ← implement post-issuance amendments
+/dev-reactivation-hook ← implement reactivation options
+  ↓
 /dev-lifecycle-hooks   ← implement event-driven and scheduled logic
+/dev-payment-hooks     ← implement payment event handling
+/dev-claims-hook       ← implement claims event handling
+/dev-actions           ← actions reference (cross-cutting)
+/dev-sdk               ← Root SDK for advanced logic
+  ↓
 /dev-schema            ← generate or update input form schemas
 /dev-documents         ← build policy schedule and terms templates
   ↓
