@@ -67,6 +67,13 @@ These skills guide implementation of the core code hooks and configuration that 
 | `/dev-embed-sales` | Configure the white-label quote-to-issue embed (landing, quote, personal details, payment, confirmation) |
 | `/dev-embed-manage` | Configure the policy self-service embed (policy view, alterations, beneficiaries, payments, claims) |
 
+### Data & Reporting
+
+| Skill | Purpose |
+|---|---|
+| `/dev-data-export` | Configure scheduled/ad-hoc CSV data exports (13 data sources, SFTP/S3/HTTPS delivery) |
+| `/dev-data-adapter` | Generate SQL queries for the Root Data Adapter (AWS Athena, BI tool integration) |
+
 ### Cross-cutting References
 
 | Skill | Purpose |
