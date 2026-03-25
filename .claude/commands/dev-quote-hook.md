@@ -20,15 +20,18 @@ Implement `validateQuoteRequest` and `getQuote` — the functions that validate 
 
 ## Reference: validateQuoteRequest
 
+→ **CRITICAL**: The platform uses **Joi v11.3.4** — use `Joi.validate(data, schema)`, NOT `schema.validate(data)`. See `/dev-globals` for full v11 API reference.
+
 ```js
 const validateQuoteRequest = (data) => {
   const schema = Joi.object({
     age: Joi.number().integer().min(18).max(65).required(),
     cover_amount: Joi.number().min(10000).max(5000000).required(),
   });
-  const { error, value } = schema.validate(data);
-  if (error) throw new Error(error.details[0].message);
-  return value;
+  // Joi v11 — static method
+  const result = Joi.validate(data, schema, { abortEarly: false });
+  if (result.error) throw new Error(result.error.details[0].message);
+  return result.value;
 };
 ```
 

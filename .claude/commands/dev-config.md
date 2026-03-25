@@ -12,7 +12,7 @@ Configure `.root-config.json` general product settings — scheme type, policyho
 6. Configure `beneficiaries` (object with min/max) or set to `null` to disable
 7. Configure `gracePeriod.lapseOn` — set lapse rules or `null` to disable each rule type
 8. Set not-taken-up rules via `notTakenUpEnabled` (boolean) or `notTakenUp` (object with `failedPaymentsBeforeNTU`)
-9. Configure `coolingOffPeriod` and `waitingPeriod` — set `theFullPolicy` to `null` to disable each
+9. Configure `coolingOffPeriod` and `waitingPeriod` — see **CRITICAL** note below on disabling
 10. Configure `policyDocuments` array, `welcomeLetterEnabled`, and `policyAnniversaryNotification`
 11. Register `alterationHooks` and `scheduledFunctions` arrays if the product uses them
 12. Register `fulfillmentTypes` if claims have fulfillment workflows
@@ -106,7 +106,16 @@ Four rule types — set any to `null` to disable:
   "waitingPeriod": { "applyTo": { "theFullPolicy": { "period": 30, "periodType": "days" } } }
 }
 ```
-Set `theFullPolicy` to `null` to disable cooling-off or waiting period.
+
+→ **CRITICAL**: To **disable** `coolingOffPeriod` or `waitingPeriod`, set `theFullPolicy` to `null` but **keep the parent object structure**. The CLI calls `Object.keys()` on the outer objects — setting the top-level key to `null` crashes with `Cannot convert undefined or null to object`.
+
+```json
+// CORRECT — disables waiting period
+"waitingPeriod": { "applyTo": { "theFullPolicy": null } }
+
+// WRONG — crashes the CLI
+"waitingPeriod": null
+```
 
 ## Reference: policy documents
 

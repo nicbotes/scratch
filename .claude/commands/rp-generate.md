@@ -37,3 +37,13 @@ If no step is specified, generate for all steps.
    - **Schemas** (`quote-schema.json`, `application-schema.json`) — configure input forms in the Root dashboard or your frontend
    - **API docs** — describe the API shape for integrating with Root
    - **Payloads** — ready-to-use test payloads for `/rp-test` and `/rp-render`
+
+---
+
+## Troubleshooting
+
+**`rp generate` runs but produces no output files:**
+
+- The generator parses Joi schemas from `validateQuoteRequest` / `validateApplicationRequest` — if the Joi patterns don't match what the generator expects (e.g. nested custom validation, complex `.when()` clauses, or non-standard Joi usage), it may silently produce nothing.
+- **Check**: After running, verify files exist in `./sandbox/`. If empty, the Joi schema may need simplification or the schemas should be hand-written in the Root array format.
+- **Workaround**: Start schema files with `[]` (empty array) so `rp push` succeeds, then hand-build the array-format schema or simplify Joi validation until `rp generate` can parse it.

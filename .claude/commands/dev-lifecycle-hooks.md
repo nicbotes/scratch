@@ -72,14 +72,48 @@ const afterPaymentFailed = ({ policy, policyholder }) => {
 };
 ```
 
-## Reference: scheduled function signature
+## Reference: scheduled function format
+
+Scheduled functions are **objects** with a `name` property and an async `run` method. They are **not** cron strings. The schedule (frequency, time, day) is configured in `.root-config.json` under `scheduledFunctions`, not in the code.
+
+### Code definition
 
 ```js
-const monthlyCheck = {
+const monthlyPremiumReview = {
   name: 'monthly_premium_review',
-  schedule: '0 9 1 * *', // cron: 9am on the 1st of each month
-  run: ({ policy, policyholder }) => {
+  run: async ({ policy, policyholder }) => {
     return [/* actions */];
   },
 };
 ```
+
+The `name` must match the `functionName` in `.root-config.json`.
+
+### Config registration (`.root-config.json`)
+
+```json
+{
+  "scheduledFunctions": [
+    {
+      "functionName": "monthly_premium_review",
+      "policyStatuses": ["active"],
+      "frequency": {
+        "type": "monthly",
+        "timeOfDay": "04:00",
+        "dayOfMonth": 1
+      }
+    }
+  ]
+}
+```
+
+→ **CRITICAL**: Do **not** use cron syntax. The `frequency` object defines the schedule:
+- `type`: `"daily"`, `"weekly"`, `"monthly"`, or `"yearly"`
+- `timeOfDay`: `"H:00"` or `"H:30"` only (UTC)
+- `dayOfMonth`: 1–28 (for monthly/yearly)
+- `dayOfWeek`: `"monday"`–`"sunday"` (for weekly)
+- `monthOfYear`: `"january"`–`"december"` (for yearly)
+
+→ The `policyStatuses` array controls which policies the function runs against (e.g. `["active"]`, `["active", "lapsed"]`).
+
+→ The `run` function is **async** — it can use `await` for SDK calls like `root.policies.list()`.

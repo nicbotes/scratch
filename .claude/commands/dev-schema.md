@@ -2,6 +2,11 @@
 
 Create or update the JSON schemas that configure quote, application, and alteration input forms.
 
+→ **CRITICAL**: Schema files uploaded to Root (`quote-schema.json`, `application-schema.json`, `workflows/alteration-hooks/<key>.json`) **must be JSON arrays**, not JSON Schema objects. The CLI validates them with `"must be an array"`. The JSON Schema object format shown in the reference below is only used internally by `rp generate` — it is **not** the upload format. When building schemas:
+1. Start with an empty array `[]` in each schema file so `rp push` succeeds
+2. Use `rp generate` to produce the correct array format from your Joi validation
+3. If hand-editing, follow the array-of-fields format (each element is a field descriptor object)
+
 ## Steps
 
 The recommended path is Joi-first — write validation in the hook, generate the schema from it:
@@ -16,7 +21,7 @@ The recommended path is Joi-first — write validation in the hook, generate the
 
 ---
 
-## Reference: JSON schema structure
+## Reference: JSON schema structure (internal/generation format — NOT the upload format)
 
 ```json
 {

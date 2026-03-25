@@ -91,3 +91,83 @@ const beforeClaimSentToReview = ({ policy, policyholder, claim }) => {
   return [];
 };
 ```
+
+---
+
+## Reference: Claims Blocks (`workflows/claims-blocks.json`)
+
+Claims blocks define the UI and data capture for claims workflows in the Root dashboard. The file is a **JSON array** of block descriptor objects.
+
+### Valid block types
+
+| Type | Description | Required properties |
+|---|---|---|
+| `alert` | Info/warning/error banner | `key`, `title`, `type` ("alert"), `alert_type` ("info"/"warning"/"error"), `text` |
+| `checkbox` | Boolean checkbox | `key`, `title`, `type` ("checkbox"), **`default_value`** (boolean, required!) |
+| `divider` | Visual separator | `key`, `type` ("divider") |
+| `dropdown` | Select from options | `key`, `title`, `type` ("dropdown"), `options` (array of `{label, value}`) |
+| `heading` | Section heading | `key`, `title`, `type` ("heading") |
+| `input.currency` | Currency input | `key`, `title`, `type` ("input.currency") |
+| `input.text` | Text input | `key`, `title`, `type` ("input.text") |
+| `input.date` | Date picker | `key`, `title`, `type` ("input.date") |
+| `input.number` | Number input | `key`, `title`, `type` ("input.number") |
+| `input.paragraph` | Multiline text | `key`, `title`, `type` ("input.paragraph") |
+| `input.time` | Time picker | `key`, `title`, `type` ("input.time") |
+| `markdown` | Rendered markdown | `key`, `type` ("markdown"), `text` |
+| `radio` | Radio button group | `key`, `title`, `type` ("radio"), `options` (array of `{label, value}`) |
+| `group` | Group of nested blocks | `key`, `title`, `type` ("group"), `blocks` (array) |
+| `annuity_request` | Annuity payout request | `key`, `type` ("annuity_request") |
+| `fulfillment_request` | Fulfillment payout | `key`, `type` ("fulfillment_request") |
+| `payout_request` | Lump-sum payout | `key`, `type` ("payout_request") |
+
+→ **CRITICAL**: `checkbox` blocks **require** a `default_value` property (boolean). Without it, `rp push` fails with `"default_value" is required`.
+
+→ **CRITICAL**: There is **no `hidden` block type**. If you need computed/derived state, use the `update_claim_module_data` action in a claims hook and access it via `claim.module`. Use `alert` blocks with conditional `show_if` to display computed information.
+
+### Block example
+
+```json
+[
+  {
+    "key": "claim_type",
+    "title": "Type of Claim",
+    "type": "dropdown",
+    "options": [
+      { "label": "Death", "value": "death" },
+      { "label": "Terminal Illness", "value": "terminal_illness" }
+    ]
+  },
+  {
+    "key": "is_accidental",
+    "title": "Was this accidental?",
+    "type": "checkbox",
+    "default_value": false
+  },
+  {
+    "key": "incident_date",
+    "title": "Date of Incident",
+    "type": "input.date"
+  },
+  {
+    "key": "section_divider",
+    "type": "divider"
+  },
+  {
+    "key": "payout",
+    "type": "payout_request"
+  }
+]
+```
+
+### Conditional visibility (`show_if`)
+
+Blocks can be conditionally shown based on other block values:
+
+```json
+{
+  "key": "police_case_number",
+  "title": "Police Case Number",
+  "type": "input.text",
+  "show_if": [{ "key": "is_accidental", "value": true }]
+}
+```

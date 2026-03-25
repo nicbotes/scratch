@@ -32,6 +32,41 @@ Reference for the runtime environment available in product module code — Joi e
 | `environment` | — | `'sandbox'` or `'production'` |
 | `Math`, `JSON`, `Promise` | — | Standard built-ins |
 
+## CRITICAL: Joi v11 API Differences
+
+The platform uses **Joi v11.3.4**, which has a significantly different API from Joi v17+. Do not use v17+ patterns.
+
+| Operation | Joi v11 (correct) | Joi v17+ (wrong) |
+|---|---|---|
+| Validate | `Joi.validate(data, schema, options)` | `schema.validate(data, options)` |
+| Optional override | `Joi.object({ ... }).options({ ... })` | Same |
+| Abort early | `Joi.validate(data, schema, { abortEarly: false })` | `schema.validate(data, { abortEarly: false })` |
+| Allow unknown | `Joi.validate(data, schema, { allowUnknown: true })` | `schema.validate(data, { allowUnknown: true })` |
+| String regex | `Joi.string().regex(/pattern/)` | `Joi.string().pattern(/pattern/)` |
+
+### v11 validation pattern
+
+```js
+const schema = Joi.object({
+  name: Joi.string().required(),
+  age: Joi.number().integer().min(18).max(65).required(),
+});
+
+// CORRECT — v11 static method
+const result = Joi.validate(data, schema, { abortEarly: false });
+if (result.error) {
+  throw new Error(result.error.details.map(d => d.message).join('; '));
+}
+return result.value;
+
+// WRONG — v17+ instance method (will throw "schema.validate is not a function")
+// const { error, value } = schema.validate(data);
+```
+
+→ See `/dev-quote-hook` and `/dev-application-hook` for full validation examples using Joi v11.
+
+---
+
 ## Reference: Joi custom extensions
 
 ```js
