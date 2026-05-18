@@ -18,13 +18,15 @@ A two-minute gate that prevents 80% of the silent failures (wrong env filter, ce
    - partition scan cost (no date filter on a large table)
    - join cardinality blowup (many-to-many join)
    - timezone (`AT TIME ZONE` missing — `from_iso8601_timestamp` returns UTC)
-3. **Dry-run for cost:**
+   - **return-size blowup** — a `SELECT *` that returns millions of rows; will hit the stdout cap (rules.md #23) and should be routed via `--to-file` / `athena-unload.sh` instead
+3. **Estimate return size.** "How many rows will this query return?" If you don't know, that's a signal to add `LIMIT 50` and rerun first, or to check `profile-data` for the base population's row count. Anything beyond a few thousand rows belongs in a file or in S3, not in chat.
+4. **Dry-run for cost:**
    ```bash
    bash .agents/tools/athena-query.sh --dry-run "<your sql>"
    ```
    This runs `EXPLAIN`. Pair with the `bytes_scanned` from the session log if `ROOT_AGENTS_DEBUG=1`.
-4. **Decide.** If cost is acceptable and the failure modes are mitigated (date filter present, env filter present, joins keyed correctly), proceed. If not, narrow first.
-5. Paste the premortem block into context. Subsequent reasoning refers back to it instead of repeating the analysis.
+5. **Decide.** If scan cost and return size are acceptable and the failure modes are mitigated (date filter present, env filter present, joins keyed correctly), proceed. If not, narrow first.
+6. Paste the premortem block into context. Subsequent reasoning refers back to it instead of repeating the analysis.
 
 ## Reference
 
@@ -35,8 +37,9 @@ Likely failure modes:
   1. <mode> -> mitigation: <how this query avoids it>
   2. <mode> -> mitigation: <…>
   3. <mode> -> mitigation: <…>
-Dry-run: <DataScannedInBytes>
-Decision: <proceed | narrow first | abort>
+Estimated rows returned: <answer or "unknown — narrowing first">
+Dry-run scanned bytes: <DataScannedInBytes>
+Decision: <proceed | narrow first | route via format-output | abort>
 ```
 
 → Next: `run-query`, `bi-view`, `ops-dataset`, or `compliance-query` — whichever the intent maps to.

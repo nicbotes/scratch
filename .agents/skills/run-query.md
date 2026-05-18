@@ -31,6 +31,13 @@ Workhorse. Most other skills compose this one.
 
 ## Reference
 
-`athena-query.sh` accepts `--dry-run` to call `EXPLAIN` and get `DataScannedInBytes` without executing. Used by `premortem`.
+`athena-query.sh` flags:
+- `--dry-run` — call `EXPLAIN` and get `DataScannedInBytes` without executing. Used by `premortem`.
+- `--format csv|json|jsonl|tsv` — emit a programmatic format.
+- **`--to-file <path>`** — write the full result to a file; stdout only echoes the path and row count. Use for anything beyond a few thousand rows.
+- **`--head N`** — header + first N data rows.
+- **`--no-row-cap`** — explicit override of the stdout cap. Pair with a sentence in your reply explaining why the full output had to land in context. The default cap is `ROOT_AGENTS_MAX_ROWS` (1000); above it, output truncates with a loud footer naming these escape valves.
 
-→ Next (if recurring): `bi-view` (analytical layer) or `ops-dataset` (action queue).
+If you find yourself reaching for `--no-row-cap`, that's the framework telling you the output should be **formatted-and-delivered**, not pasted in chat. Route via `format-output` instead. See rules.md #23 and `references/output-formats.md`.
+
+→ Next (if recurring): `bi-view` (analytical layer) or `ops-dataset` (action queue). Next (if leaving chat): `format-output`.

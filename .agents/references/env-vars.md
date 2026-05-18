@@ -22,6 +22,8 @@ Every tool under `.agents/tools/` reads these. They are the only way credentials
 | `ROOT_AGENTS_SESSION_ID` | UTC date | Namespace for `.agents/sessions/<id>.jsonl` and `.agents/feedback/<id>.jsonl` |
 | `ROOT_API_KEY` | from `.root-auth` if present | Root Dashboard API key. Used by `root-api.sh` for fetching module schemas etc. **Independent of AWS creds** — a different surface |
 | `ROOT_API_BASE_URL` | `https://api.rootplatform.com` | Base URL for the Root API. The exact endpoint paths under `/v1/...` (e.g. for product-module-definitions) should be confirmed on first call and recorded in the learned skill that derives the JSONB schema |
+| `ROOT_AGENTS_MAX_ROWS` | `1000` | Cap for rows printed to stdout by `athena-query.sh`. Above this, output auto-truncates with a footer naming the escape valves (rules.md #23) |
+| `ROOT_AGENTS_MAX_BYTES` | `200000` (200 KB) | Cap for `root-api.sh` response bodies and any future byte-based printer |
 
 ## Walkthrough
 

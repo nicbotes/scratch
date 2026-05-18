@@ -62,6 +62,8 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 
 **Where does the output go?** Once an answer leaves the chat — to a file, S3, a data pipeline, a Node/Python app — route through `references/output-formats.md` (consumer → format → tool → delivery). Default to CSV for humans, JSONL for apps, Parquet via `athena-unload.sh` for pipelines.
 
+**Token-friendly default.** Stdout caps at 1000 rows / 200 KB. When the cap fires, the tool tells you the escape valves (`--to-file`, `--head`, `--no-row-cap`, or route through `format-output`). Don't `--no-row-cap` silently — explain in your reply why the full output had to land in context. See rules.md #23.
+
 ## Feedback loop pledge
 
 If anything in this framework felt wrong — a description that didn't fire, a reference you had to re-open, a rule you wished existed, a tool flag you needed — call `observe` immediately. One note per friction event. At end of session, run `retro` to turn those notes into proposed edits under `.agents/proposals/`. The cost of skipping is paying the same friction again next session.

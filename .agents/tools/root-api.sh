@@ -13,15 +13,34 @@
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
 
+method=""
+path=""
+data=""
+max_bytes="$ROOT_AGENTS_MAX_BYTES"
+no_truncate=0
+positional=()
+
+while (( $# )); do
+  case "$1" in
+    --data)        data="$2";        shift 2 ;;
+    --max-bytes)   max_bytes="$2";   shift 2 ;;
+    --no-truncate) no_truncate=1;    shift ;;
+    -*) echo "unknown flag: $1" >&2; exit 64 ;;
+    *) positional+=("$1"); shift ;;
+  esac
+done
+set -- "${positional[@]:-}"
+
 method="${1:-}"
 path="${2:-}"
-data=""
-if [[ "${3:-}" == "--data" ]]; then
-  data="${4:-}"
-fi
 
 if [[ -z "$method" || -z "$path" ]]; then
-  echo "usage: root-api.sh <METHOD> <path> [--data '<json>']" >&2
+  echo "usage: root-api.sh <METHOD> <path> [--data '<json>'] [--max-bytes N] [--no-truncate]" >&2
+  exit 64
+fi
+
+if ! [[ "$max_bytes" =~ ^[0-9]+$ ]]; then
+  echo "error: --max-bytes expects an integer (got: $max_bytes)" >&2
   exit 64
 fi
 
@@ -81,4 +100,17 @@ printf '{"ts":"%s","session":"%s","tool":"root-api","ok":true,"method":"%s","pat
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sid" "$method" "$path" "$ms" \
   >> "$dir/$sid.jsonl"
 
-printf '%s\n' "$resp"
+resp_bytes=${#resp}
+if (( no_truncate == 0 )) && (( resp_bytes > max_bytes )); then
+  # Print first $max_bytes bytes, then a loud footer to stderr.
+  printf '%s' "${resp:0:$max_bytes}"
+  echo
+  cat >&2 <<EOF
+... truncated at $max_bytes of $resp_bytes bytes.
+Re-run with --max-bytes <N> or --no-truncate, or pipe through 'jq .field'
+to extract just the part you need.
+EOF
+  _session_log_extra "root-api" "byte_cap_hit=true" "bytes=$resp_bytes" "capped_at=$max_bytes"
+else
+  printf '%s\n' "$resp"
+fi

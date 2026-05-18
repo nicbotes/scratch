@@ -48,9 +48,23 @@ _session_log() {
     >> "$dir/$sid.jsonl"
 }
 
+# Context-size safety caps. Tools that print to stdout honour these.
+ROOT_AGENTS_MAX_ROWS="${ROOT_AGENTS_MAX_ROWS:-1000}"
+ROOT_AGENTS_MAX_BYTES="${ROOT_AGENTS_MAX_BYTES:-200000}"
+export ROOT_AGENTS_MAX_ROWS ROOT_AGENTS_MAX_BYTES
+
+# After run_athena succeeds, these are populated for the caller.
+# LAST_QUERY_ID, LAST_QUERY_BYTES, LAST_QUERY_MS, LAST_QUERY_ROWS
+LAST_QUERY_ID=""
+LAST_QUERY_BYTES=0
+LAST_QUERY_MS=0
+LAST_QUERY_ROWS=0
+
 # run_athena <sql>
 # Echoes the QueryExecutionId on success. Polls until SUCCEEDED.
-# Side effects: prints scanned bytes / time to stderr if ROOT_AGENTS_DEBUG=1.
+# Side effects:
+#   - prints scanned bytes / time to stderr if ROOT_AGENTS_DEBUG=1
+#   - populates LAST_QUERY_{ID,BYTES,MS,ROWS} globals
 run_athena() {
   local sql="$1"
   require_env
@@ -70,19 +84,25 @@ run_athena() {
 
   # Poll with backoff: 1s, 1s, 2s, 3s, 5s, 8s, 13s (Fibonacci-ish), max 60s
   local waits=(1 1 2 3 5 8 13 21 34 60)
-  local i=0 state="" reason="" bytes=0 ms=0
+  local i=0 state="" reason="" bytes=0 ms=0 rows=0
   while :; do
     local sleep_s="${waits[$i]:-60}"
     sleep "$sleep_s"
     local info
     info="$(aws athena get-query-execution --query-execution-id "$qid" \
       --output text \
-      --query 'QueryExecution.[Status.State,Status.StateChangeReason,Statistics.DataScannedInBytes,Statistics.EngineExecutionTimeInMillis]')"
+      --query 'QueryExecution.[Status.State,Status.StateChangeReason,Statistics.DataScannedInBytes,Statistics.EngineExecutionTimeInMillis,Statistics.OutputRows]')"
     state="$(echo "$info" | awk '{print $1}')"
     reason="$(echo "$info" | cut -f2- | sed "s/^$state[[:space:]]*//")"
-    bytes="$(echo "$info" | awk '{print $(NF-1)}')"
-    ms="$(echo "$info" | awk '{print $NF}')"
-    _debug "state=$state bytes=$bytes ms=$ms"
+    # Tail of the line is: <bytes> <ms> <rows>
+    bytes="$(echo "$info" | awk '{print $(NF-2)}')"
+    ms="$(echo "$info"    | awk '{print $(NF-1)}')"
+    rows="$(echo "$info"  | awk '{print $NF}')"
+    # Normalise to 0 if Athena emitted "None"
+    [[ "$bytes" == "None" ]] && bytes=0
+    [[ "$ms"    == "None" ]] && ms=0
+    [[ "$rows"  == "None" ]] && rows=0
+    _debug "state=$state bytes=$bytes ms=$ms rows=$rows"
     case "$state" in
       SUCCEEDED) break ;;
       FAILED|CANCELLED)
@@ -94,8 +114,31 @@ run_athena() {
     (( i++ ))
   done
 
+  LAST_QUERY_ID="$qid"
+  LAST_QUERY_BYTES="${bytes:-0}"
+  LAST_QUERY_MS="${ms:-0}"
+  LAST_QUERY_ROWS="${rows:-0}"
+
   _session_log "run_athena" "true" "${ms:-0}" "${bytes:-0}"
   printf '%s\n' "$qid"
+}
+
+# _session_log_extra <key=value> ... — append a one-off event row
+# (e.g. row_cap_hit=true) to the session log without overwriting run_athena's
+# regular log line.
+_session_log_extra() {
+  local tool="$1"; shift
+  local dir="$AGENTS_ROOT/sessions"
+  mkdir -p "$dir"
+  local sid; sid="$(_session_id)"
+  local extra=""
+  for kv in "$@"; do
+    local k="${kv%%=*}" v="${kv#*=}"
+    extra+=",\"$k\":$v"
+  done
+  printf '{"ts":"%s","session":"%s","tool":"%s"%s,"org_id":"%s","env":"%s"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sid" "$tool" "$extra" "$ROOT_ORG_ID" "$ROOT_ENV" \
+    >> "$dir/$sid.jsonl"
 }
 
 # fetch_results <query-execution-id>

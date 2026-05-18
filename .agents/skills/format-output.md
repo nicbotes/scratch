@@ -30,6 +30,8 @@ The end of the analytical loop. Format and delivery follow the consumer — neve
 
 ## Reference
 
+**If you got here because `athena-query.sh` truncated:** that's by design (rules.md #23). The cap exists so the result doesn't burn the conversation's tokens. The right move is to pick a format and a sink from the matrix rather than reach for `--no-row-cap`.
+
 When a consumer asks for "a file" with no other context, the safe default is **CSV to local file**. State the assumption ("delivering as CSV — say the word if you'd rather have JSONL / Parquet / etc.") so the consumer can redirect cheaply.
 
 When a consumer says "send it to our pipeline", the safe default is **Parquet via `athena-unload.sh` to S3** — typed, columnar, picked up by anything modern. Tell them the S3 URI.

@@ -9,6 +9,19 @@ require_env
 
 dir="$AGENTS_ROOT/regressions"
 
+DIFF_CAP=50
+
+print_capped() {
+  local label="$1" body="$2"
+  local total
+  total="$(printf '%s\n' "$body" | wc -l | tr -d ' ')"
+  echo "  $label:"
+  printf '%s\n' "$body" | head -n "$DIFF_CAP" | sed 's/^/    /'
+  if (( total > DIFF_CAP )); then
+    echo "    ... truncated ($((total - DIFF_CAP)) more lines; see the full value in the regression JSON file)"
+  fi
+}
+
 check_one() {
   local file="$1"
   local name; name="$(basename "$file" .json)"
@@ -24,11 +37,9 @@ check_one() {
     return 0
   fi
 
-  echo "FAIL $name"
-  echo "  expected:"
-  printf '%s\n' "$expected" | sed 's/^/    /'
-  echo "  actual:"
-  printf '%s\n' "$actual" | sed 's/^/    /'
+  echo "FAIL $name (regression file: $file)"
+  print_capped "expected" "$expected"
+  print_capped "actual"   "$actual"
   return 1
 }
 
