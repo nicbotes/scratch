@@ -47,6 +47,7 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 | "Across all our orgs…" | `multi-org-query` |
 | JSONB column with unknown keys (`module`, `charges`, `data`, `settings`) | `derive-jsonb-schema` |
 | "What fraction of X has feature Y?" / "Adoption of …" | `feature-adoption` |
+| Result is leaving the chat (file / S3 / pipeline / app) | `format-output` |
 | Pin / verify a deterministic answer against fixed history | `regression-test` |
 | You hit friction — description didn't fire, ref re-read, tool gap | `observe` |
 | End of session — turn feedback into proposed edits | `retro` |
@@ -58,6 +59,8 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 **Skill loading order.** When the decision tree names a skill, check `.agents/skills/<name>.md` first. If it isn't there, check `.agents/skills/learned/<name>.md`. A learned skill carries a "not yet curated" banner — mention this in your reply when you route through one, so the user knows the steps came from a prior agent session, not a reviewed body of work. Promotion from `learned/` to canonical happens through `retro`, never silently.
 
 **Not sure which shape your discovery belongs in?** See `references/extension-shapes.md` for the decision matrix (recipe vs skill vs view vs reference vs learned-skill vs sub-agent).
+
+**Where does the output go?** Once an answer leaves the chat — to a file, S3, a data pipeline, a Node/Python app — route through `references/output-formats.md` (consumer → format → tool → delivery). Default to CSV for humans, JSONL for apps, Parquet via `athena-unload.sh` for pipelines.
 
 ## Feedback loop pledge
 

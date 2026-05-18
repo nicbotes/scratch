@@ -66,3 +66,7 @@ When that day comes, the shape is: `.agents/agents/<persona>/AGENTS.md` (its own
 ## When to delete
 
 A learned skill that hasn't been touched in N sessions (where N is whatever the team finds appropriate; the session log makes this measurable) is a candidate for deletion. Retro proposes; a human applies. Better to remove an unused skill than to drown the routing layer in stale hypotheses.
+
+## Sibling matrix
+
+This file decides **what artefact** a discovery becomes. The companion `references/output-formats.md` decides **how an artefact's output is formatted and delivered** (CSV vs JSON vs Parquet, stdout vs S3 vs scheduled SFTP). Use both: one names the thing, the other ships its results.

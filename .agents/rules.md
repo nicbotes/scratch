@@ -42,3 +42,9 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 18. **Learned skills are advisory.** When you route through a skill in `skills/learned/`, mention it in your reply ("I'm using a learned, uncurated skill — review the inventory before publishing"). Promotion from `learned/` to canonical `skills/` happens through `retro`, never silently.
 
 19. **Shape your discoveries deliberately.** Before saving a useful pattern, decide if it's a recipe, skill, learned skill, reference, analytical view, operational view, regression golden, or sub-agent candidate. The decision matrix is `references/extension-shapes.md`. Picking the wrong shape rots the framework.
+
+20. **Output format follows the consumer, not the producer's preference.** Default to CSV for humans; JSON/JSONL for programmatic consumers; Parquet for data pipelines. The matrix is `references/output-formats.md` — when in doubt, route through it explicitly rather than picking by reflex.
+
+21. **Parquet via Athena `UNLOAD` beats CSV-then-convert.** For >10k rows or for typed downstream consumers, use `athena-unload.sh --format parquet`. CSV roundtrips lose types (everything becomes string); Parquet preserves them and is cheaper to re-read.
+
+22. **PII never leaves via unvetted destinations.** Until SFTP/HTTP push tools land, ad-hoc delivery is local-file or S3-within-the-same-org-prefix only. Compliance evidence stays inside `.agents/evidence/`. When push tools are added later, the safety model is **per-call user confirmation** for any destination — no implicit allowlist.

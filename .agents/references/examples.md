@@ -174,6 +174,60 @@ GROUP BY 1
 ORDER BY 1;
 ```
 
+## Parquet unload for a data pipeline
+
+Typed, columnar, snappy-compressed. Written straight to S3 — no CSV roundtrip, no type loss. The downstream pipeline reads the prefix.
+
+```bash
+bash .agents/tools/athena-unload.sh policies_2025q1 \
+  "SELECT
+     policy_id,
+     status,
+     CAST(monthly_premium AS BIGINT) AS premium_cents,
+     from_iso8601_timestamp(created_at) AS created_ts
+   FROM policies
+   WHERE environment = 'production'
+     AND created_at >= '2025-01-01'
+     AND created_at <  '2025-04-01'" \
+  --format parquet --compression snappy
+# → unload complete: s3://<bucket>/<org_id>/unloads/policies_2025q1/
+```
+
+Consumer side (Python + pyarrow):
+
+```python
+import pyarrow.dataset as ds
+table = ds.dataset(
+    "s3://<bucket>/<org_id>/unloads/policies_2025q1/",
+    format="parquet",
+).to_table()
+```
+
+## JSONL feed for a Node / Python app
+
+One JSON object per line — streamable on both sides.
+
+```bash
+bash .agents/tools/athena-query.sh --format jsonl \
+  "SELECT policy_id, status FROM policies
+   WHERE environment = 'production' LIMIT 10000" \
+  > policies.jsonl
+
+aws s3 cp policies.jsonl "s3://$ROOT_ATHENA_S3_BUCKET/$ROOT_ORG_ID/feeds/policies.jsonl"
+```
+
+Consumer side (Node):
+
+```js
+const readline = require('readline');
+const fs = require('fs');
+const rl = readline.createInterface({ input: fs.createReadStream('policies.jsonl') });
+rl.on('line', (line) => {
+  const row = JSON.parse(line);
+  // ...
+});
+```
+
 ## Regression golden
 
 Closed window, deterministic.
