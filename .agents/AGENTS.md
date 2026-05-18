@@ -83,6 +83,7 @@ Before publishing any number a human will act on, run `bash .agents/tools/regres
 - `bi/`, `ops/` — per-view documentation (grain, refresh, consumers).
 - `proposals/` — `retro` writes patches here for human review (never edits live files).
 - `evidence/`, `sessions/`, `feedback/` — gitignored runtime artefacts.
+- `FUTURE.md` — menu of unbuilt ideas (deferred tools, view pruning, pandas-first pre-aggregation, sub-agents, etc.). Pull from when a real signal emerges; don't burn through top-to-bottom.
 
 ## Cross-references
 
