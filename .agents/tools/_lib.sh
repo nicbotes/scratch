@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Shared helpers for .agents/tools/*.sh
+# Sourced, not executed.
+
+set -euo pipefail
+
+AGENTS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export AGENTS_ROOT
+
+ROOT_ENV="${ROOT_ENV:-production}"
+export ROOT_ENV
+
+_session_id() {
+  echo "${ROOT_AGENTS_SESSION_ID:-$(date -u +%Y-%m-%d)}"
+}
+
+_debug() {
+  [[ "${ROOT_AGENTS_DEBUG:-0}" == "1" ]] || return 0
+  printf '[debug] %s\n' "$*" >&2
+}
+
+require_env() {
+  local missing=()
+  for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION ROOT_ORG_ID ROOT_ATHENA_S3_BUCKET; do
+    if [[ -z "${!v:-}" ]]; then
+      missing+=("$v")
+    fi
+  done
+  if (( ${#missing[@]} )); then
+    printf 'error: missing required env vars: %s\n' "${missing[*]}" >&2
+    printf 'see %s/references/env-vars.md\n' "$AGENTS_ROOT" >&2
+    exit 64
+  fi
+  command -v aws >/dev/null || { echo "error: aws CLI not on PATH" >&2; exit 64; }
+}
+
+output_location() {
+  printf 's3://%s/%s/' "$ROOT_ATHENA_S3_BUCKET" "$ROOT_ORG_ID"
+}
+
+_session_log() {
+  local tool="$1" ok="$2" ms="$3" bytes="${4:-0}"
+  local dir="$AGENTS_ROOT/sessions"
+  mkdir -p "$dir"
+  local sid; sid="$(_session_id)"
+  printf '{"ts":"%s","session":"%s","tool":"%s","ok":%s,"ms":%s,"bytes_scanned":%s,"org_id":"%s","env":"%s"}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sid" "$tool" "$ok" "$ms" "$bytes" "$ROOT_ORG_ID" "$ROOT_ENV" \
+    >> "$dir/$sid.jsonl"
+}
+
+# run_athena <sql>
+# Echoes the QueryExecutionId on success. Polls until SUCCEEDED.
+# Side effects: prints scanned bytes / time to stderr if ROOT_AGENTS_DEBUG=1.
+run_athena() {
+  local sql="$1"
+  require_env
+
+  _debug "sql: $sql"
+  _debug "aws athena start-query-execution --work-group $ROOT_ORG_ID --query-execution-context Database=$ROOT_ORG_ID --result-configuration OutputLocation=$(output_location)"
+
+  local qid
+  qid="$(aws athena start-query-execution \
+    --query-string "$sql" \
+    --work-group "$ROOT_ORG_ID" \
+    --query-execution-context "Database=$ROOT_ORG_ID" \
+    --result-configuration "OutputLocation=$(output_location)" \
+    --output text --query 'QueryExecutionId')"
+
+  _debug "query execution id: $qid"
+
+  # Poll with backoff: 1s, 1s, 2s, 3s, 5s, 8s, 13s (Fibonacci-ish), max 60s
+  local waits=(1 1 2 3 5 8 13 21 34 60)
+  local i=0 state="" reason="" bytes=0 ms=0
+  while :; do
+    local sleep_s="${waits[$i]:-60}"
+    sleep "$sleep_s"
+    local info
+    info="$(aws athena get-query-execution --query-execution-id "$qid" \
+      --output text \
+      --query 'QueryExecution.[Status.State,Status.StateChangeReason,Statistics.DataScannedInBytes,Statistics.EngineExecutionTimeInMillis]')"
+    state="$(echo "$info" | awk '{print $1}')"
+    reason="$(echo "$info" | cut -f2- | sed "s/^$state[[:space:]]*//")"
+    bytes="$(echo "$info" | awk '{print $(NF-1)}')"
+    ms="$(echo "$info" | awk '{print $NF}')"
+    _debug "state=$state bytes=$bytes ms=$ms"
+    case "$state" in
+      SUCCEEDED) break ;;
+      FAILED|CANCELLED)
+        echo "athena query $state: $reason" >&2
+        _session_log "run_athena" "false" "${ms:-0}" "${bytes:-0}"
+        return 1
+        ;;
+    esac
+    (( i++ ))
+  done
+
+  _session_log "run_athena" "true" "${ms:-0}" "${bytes:-0}"
+  printf '%s\n' "$qid"
+}
+
+# fetch_results <query-execution-id>
+# Prints results as CSV on stdout. Pulls from S3 for large result sets.
+fetch_results() {
+  local qid="$1"
+  require_env
+  # Try get-query-results first (capped at 1000 rows per page); fall back to S3 copy
+  local out_uri
+  out_uri="$(aws athena get-query-execution --query-execution-id "$qid" \
+    --output text --query 'QueryExecution.ResultConfiguration.OutputLocation')"
+  _debug "result s3 uri: $out_uri"
+  aws s3 cp "$out_uri" - 2>/dev/null
+}

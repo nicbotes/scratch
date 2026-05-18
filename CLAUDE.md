@@ -73,6 +73,7 @@ These skills guide implementation of the core code hooks and configuration that 
 |---|---|
 | `/dev-data-export` | Configure scheduled/ad-hoc CSV data exports (13 data sources, SFTP/S3/HTTPS delivery) |
 | `/dev-data-adapter` | Generate SQL queries for the Root Data Adapter (AWS Athena, BI tool integration) |
+| `.agents/AGENTS.md` | Agentic data-adapter operations via AWS CLI (no MCP) — query, profile, BI/ops views, compliance, regression-tested |
 
 ### Cross-cutting References
 
