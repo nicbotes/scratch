@@ -36,3 +36,9 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 15. **Goldens are time-bounded.** Every regression file pins a closed historical window (`>=` and `<` both present, or `BETWEEN`). Never `NOW()`, `CURRENT_DATE`, or "active today" — those drift legitimately and produce noise.
 
 16. **Compliance is per-org-per-subject.** `multi-org-query` is for analytics that aggregates across orgs. Never fan compliance queries across orgs in one go — the evidence package must be unambiguous about which org the data came from.
+
+17. **JSONB discoveries are persisted.** When you derive the key shape of a JSONB column (`policies.module`, `policies.charges`, `claims.module`, `policy_events.data`, `product_module_definitions.settings/.billing`), call `learn-skill.sh` immediately so the next query routes to `skills/learned/jsonb-schema-<...>.md` without re-sampling. The skill that does the derivation is `derive-jsonb-schema`.
+
+18. **Learned skills are advisory.** When you route through a skill in `skills/learned/`, mention it in your reply ("I'm using a learned, uncurated skill — review the inventory before publishing"). Promotion from `learned/` to canonical `skills/` happens through `retro`, never silently.
+
+19. **Shape your discoveries deliberately.** Before saving a useful pattern, decide if it's a recipe, skill, learned skill, reference, analytical view, operational view, regression golden, or sub-agent candidate. The decision matrix is `references/extension-shapes.md`. Picking the wrong shape rots the framework.

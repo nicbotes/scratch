@@ -132,6 +132,48 @@ bash .agents/tools/save-view.sh ops_failed_payments_to_retry \
    ORDER BY p.payment_date ASC"
 ```
 
+## Feature adoption (template)
+
+Parameterise `<base population>`, `<feature signal>`, and the optional `<cohort window>`. Full workflow is `feature-adoption` skill; this is the bare SQL for one-off use.
+
+```sql
+WITH base AS (
+  SELECT policy_id, module
+  FROM policies
+  WHERE environment = 'production'
+    AND status = 'active'                                          -- <base filter>
+),
+adopters AS (
+  SELECT policy_id
+  FROM base
+  WHERE JSON_EXTRACT_SCALAR(module, '$.<feature_path>')
+        = '<feature_value>'                                        -- <feature signal>
+)
+SELECT
+  (SELECT COUNT(*) FROM adopters)                                  AS adopters,
+  (SELECT COUNT(*) FROM base)                                      AS base,
+  1.0 * (SELECT COUNT(*) FROM adopters)
+      / NULLIF((SELECT COUNT(*) FROM base), 0)                     AS adoption_rate;
+```
+
+Monthly trend version:
+
+```sql
+SELECT
+  date_trunc('month', from_iso8601_timestamp(created_at))      AS month,
+  COUNT(*)                                                     AS base,
+  COUNT_IF(JSON_EXTRACT_SCALAR(module, '$.<path>')
+           = '<value>')                                        AS adopters,
+  1.0 * COUNT_IF(JSON_EXTRACT_SCALAR(module, '$.<path>')
+                 = '<value>') / NULLIF(COUNT(*), 0)            AS rate
+FROM policies
+WHERE environment = 'production'
+  AND status = 'active'
+  AND from_iso8601_timestamp(created_at) >= NOW() - INTERVAL '6' MONTH
+GROUP BY 1
+ORDER BY 1;
+```
+
 ## Regression golden
 
 Closed window, deterministic.

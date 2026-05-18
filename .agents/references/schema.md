@@ -4,16 +4,16 @@ Tables exposed in every org's Athena database (`$ROOT_ORG_ID`). All tables have 
 
 > Run `bash .agents/tools/athena-describe.sh <table>` to see the live column list. The catalog below covers the columns the agent uses most often; sample the table for less-common columns rather than guessing.
 
-## `organisations`
+## `organizations`
 
-The lookup the `whoami` skill depends on. The org id stored here matches `$ROOT_ORG_ID` (which is also the workgroup / database / S3 prefix).
+The lookup the `whoami` skill depends on. The `organization_id` stored here matches `$ROOT_ORG_ID` (which is also the workgroup / database / S3 prefix).
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | varchar | The org id — same string as workgroup/schema/S3 prefix |
+| `organization_id` | varchar | Same string as workgroup/schema/S3 prefix |
 | `name` | varchar | Human-readable name printed by `whoami` |
 
-(Other columns exist — run `DESCRIBE organisations` to see them.)
+(Other columns exist — run `DESCRIBE organizations` to see them.)
 
 ## `policies`
 

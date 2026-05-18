@@ -20,6 +20,8 @@ Every tool under `.agents/tools/` reads these. They are the only way credentials
 | `ROOT_ORG_IDS` | unset | Comma-separated list for `multi-org-query` |
 | `ROOT_AGENTS_DEBUG` | `0` | `1` prints resolved `aws athena` commands, scanned bytes, and query ids to stderr |
 | `ROOT_AGENTS_SESSION_ID` | UTC date | Namespace for `.agents/sessions/<id>.jsonl` and `.agents/feedback/<id>.jsonl` |
+| `ROOT_API_KEY` | from `.root-auth` if present | Root Dashboard API key. Used by `root-api.sh` for fetching module schemas etc. **Independent of AWS creds** — a different surface |
+| `ROOT_API_BASE_URL` | `https://api.rootplatform.com` | Base URL for the Root API. The exact endpoint paths under `/v1/...` (e.g. for product-module-definitions) should be confirmed on first call and recorded in the learned skill that derives the JSONB schema |
 
 ## Walkthrough
 
@@ -43,7 +45,7 @@ Every tool under `.agents/tools/` reads these. They are the only way credentials
 
 ## Multiple orgs
 
-If a single keypair has access to multiple orgs (common for parent organisations):
+If a single keypair has access to multiple orgs (common for parent organizations):
 
 ```bash
 export ROOT_ORG_IDS="8f3c...,a921...,b4e0..."

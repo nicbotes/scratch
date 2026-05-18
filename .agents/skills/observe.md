@@ -30,6 +30,15 @@ The cheap, low-ceremony way the framework improves itself. The note costs you 5 
    ```
 5. **Move on.** One note per friction event — don't batch, don't editorialise, don't try to write the fix yourself (that's `retro`'s job).
 
+## Note vs learn-skill
+
+`observe` and `learn-skill` are different reflexes:
+
+- **`observe`** — emit a note about something that should change in the framework (description, rule, tool, reference). Retro turns these into proposed edits.
+- **`learn-skill`** (via `derive-jsonb-schema` or any other workflow that produces a reusable artefact) — persist a *new* reusable workflow for this session and beyond. The artefact is the value, not the note.
+
+When you do both (e.g. you derived a JSONB schema *and* noticed that `references/schema.md` should have called out the column as JSONB more prominently), call `learn-skill.sh` first to capture the artefact, then `observe --kind reference-thrash --target references/schema.md` to flag the prompt that drove you to learn it the hard way.
+
 ## Reference
 
 The framework's quality is measured session-over-session by the rate of `description-miss` and `progressive-disclosure` notes against a given skill. A skill that keeps generating misses is a skill that needs rewriting.

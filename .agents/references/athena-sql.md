@@ -99,6 +99,40 @@ EXPLAIN SELECT … ;     -- logical plan
 
 `athena-query.sh --dry-run "<sql>"` wraps this and surfaces `DataScannedInBytes` from the engine — use it via the `premortem` skill.
 
+## JSON-keys enumeration
+
+When you don't yet know the keys inside a JSONB column, enumerate them empirically. Two patterns:
+
+**Presto `map_keys` + `UNNEST`** — runs entirely in Athena:
+
+```sql
+WITH sample AS (
+  SELECT module
+  FROM policies
+  WHERE environment = 'production'
+    AND module IS NOT NULL
+  LIMIT 50
+)
+SELECT key, COUNT(*) AS occurrences
+FROM sample, UNNEST(map_keys(CAST(module AS map<varchar, json>))) AS t(key)
+GROUP BY key
+ORDER BY occurrences DESC;
+```
+
+This works when the JSON is an object. For arrays, sample raw values and inspect with `jq`.
+
+**Shell + `jq` fallback** — useful when you want type and example value alongside the key:
+
+```bash
+bash .agents/tools/athena-query.sh \
+  "SELECT module FROM policies WHERE environment='production' AND module IS NOT NULL LIMIT 50" \
+  | tail -n +2 \
+  | jq -r 'keys_unsorted[]' 2>/dev/null \
+  | sort | uniq -c | sort -rn
+```
+
+The full reconciliation workflow (sampled + declared) is the `derive-jsonb-schema` skill.
+
 ## Common surprises
 
 - **No `IF (cond, a, b)`** in some Athena versions — use `CASE WHEN cond THEN a ELSE b END`.
