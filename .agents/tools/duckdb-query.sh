@@ -102,7 +102,7 @@ fi
 full_sql="$s3_preamble $sql"
 _debug "duckdb sql: $full_sql"
 
-start_ms="$(date +%s%3N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000))')"
+start_ms="$(python3 -c 'import time; print(int(time.time()*1000))')"
 
 # Always emit CSV from DuckDB; format conversion is a post-step (same
 # pattern as athena-query.sh).
@@ -112,7 +112,7 @@ csv="$(duckdb -csv -c "$full_sql" 2>&1)" || {
   exit 1
 }
 
-end_ms="$(date +%s%3N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000))')"
+end_ms="$(python3 -c 'import time; print(int(time.time()*1000))')"
 ms=$(( end_ms - start_ms ))
 
 # Count rows (header excluded). Empty stdout means 0 rows.

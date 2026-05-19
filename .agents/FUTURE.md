@@ -28,6 +28,7 @@ Today the framework happily accumulates `fact_*`, `dim_*`, and `ops_*_view` defi
 - **`skills/view-prune.md`** — reads the usage stats, lists views with zero reads in the last 30 days, proposes deletions under `.agents/proposals/<ts>/prune-views.md`. Never auto-deletes — proposals only (rules.md #13).
 - **View documentation freshness** — each `fact_*_view` / `ops_*_view` has a sibling under `.agents/bi/` or `.agents/ops/`. A retro pass flags views whose sibling doc hasn't been touched in N months. Drift between docs and SQL is a real risk.
 - **Regression golden hygiene** — a retro pass that proposes deletion of goldens whose underlying view was deleted, or whose `captured_at` is older than the team's lookback window.
+- **Redaction in committed artefacts** — `regression-record.sh` and the feedback JSONL writer should strip or blank internal identifiers (`org_id`, query execution IDs) before writing. These fields are useful for local debugging but should never be committed to a public repo. Standard pattern: record them in the local session log only; zero them out in any file that lands under version control.
 
 ---
 
@@ -100,7 +101,35 @@ The parent `AGENTS.md` becomes a thin router: identify the audience, hand off.
 
 ---
 
-## 9. Anti-list — things explicitly **not** worth building
+## 9. dbt for the mart layer (coexist, don't replace)
+
+This framework is genuinely well-suited for **exploration and analysis** — ad-hoc queries, profiling, compliance pulls, one-off BI views, regression-gated artefacts. It is **not** the right tool for owning a maintained data mart. Once the `fact_*` / `dim_*` views stabilise and downstream consumers start depending on them as a contract, the mart layer wants the things dbt gives you for free: dependency graphs, incremental materialisation, model tests, docs site, lineage, versioned migrations.
+
+The two tools coexist cleanly because they aim at different jobs:
+
+```
+.agents/  → explore, query, comply, profile, prototype views
+dbt/      → build, test, and maintain the mart the team consumes
+```
+
+Both point at the same Athena workgroup, the same `prod_lake` source tables. The handoff is straightforward: when a `fact_*_view` or `dim_*_view` in this framework starts being referenced by multiple downstream consumers (BI dashboards, scheduled exports, other agents), that's the signal to **promote it into dbt** as a proper model with tests and docs.
+
+What this session already produced is the **specification** for that dbt project. The views under `.agents/bi/` (`fact_payments_view.md`, `dim_payment_method_view.md`, `dim_product_view.md`) plus the regression goldens are essentially the contract a dbt staging/mart model would need to satisfy. Not wasted work — it's a prototype with explicit acceptance criteria.
+
+**Trigger signals to actually build the dbt project:**
+
+- ≥3 `fact_*_view` / `dim_*_view` definitions are stable and referenced by ≥2 downstream consumers each.
+- A stakeholder asks for "model documentation" or "lineage" in a way that the `.agents/bi/` markdown can't satisfy.
+- The team wants scheduled refreshes with dependency-aware ordering, not ad-hoc `CREATE OR REPLACE VIEW`.
+- A second team (analytics, finance) needs read-only access to the mart on a contract — they shouldn't have to learn this framework to consume it.
+
+**`/dev-dbt` skill (the natural next addition).** Scaffolds a `dbt-athena` project alongside `.agents/`, reusing the same Athena workgroup and S3 staging bucket. Generates `sources.yml` from `references/schema.md`, and emits `staging/stg_*.sql` model files from existing `fact_*_view` / `dim_*_view` definitions in `.agents/bi/`. The regression goldens become dbt `tests:` blocks (row counts, sum checks, distinct-value counts). The sibling `.md` docs become `description:` fields in `schema.yml`. Effectively a one-shot migration from prototype to production model.
+
+**Anti-pattern to avoid:** do not try to make `.agents/` *into* dbt. The two have different contracts. `.agents/` is agent-driven and proposes changes; dbt is code-reviewed and merged like any other repo. Bolting dbt's compile/run/test machinery into bash tools here would reinvent the wheel badly. Stand up a real dbt project when the signal arrives.
+
+---
+
+## 10. Anti-list — things explicitly **not** worth building
 
 Worth recording so we don't reinvent these every six months.
 
