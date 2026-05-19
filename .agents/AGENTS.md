@@ -87,6 +87,7 @@ Before publishing any number a human will act on, run `bash .agents/tools/regres
 - `proposals/` — `retro` writes patches here for human review (never edits live files).
 - `evidence/`, `sessions/`, `feedback/` — gitignored runtime artefacts.
 - `FUTURE.md` — menu of unbuilt ideas (deferred output tools, view pruning, cost baselines, sub-agents, etc.). Pull from when a real signal emerges; don't burn through top-to-bottom.
+- `DESIGN.md` — design history. Six phases of why-it-looks-like-this for new developers. Read this when you want the rationale behind a skill, rule, or tool; read `AGENTS.md` (this file) when you want the current shape.
 
 ## Cross-references
 
