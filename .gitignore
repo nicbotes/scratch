@@ -1,7 +1,12 @@
 # Root Platform secrets — never commit
 .root-auth
+.env
+
+# Claude Code runtime artefacts
+.claude/worktrees/
 
 # Agent framework runtime artefacts (see .agents/AGENTS.md)
 .agents/evidence/
 .agents/sessions/
+.agents/regressions/
 .agents/feedback/
