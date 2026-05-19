@@ -47,6 +47,7 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 | "Across all our orgs…" | `multi-org-query` |
 | JSONB column with unknown keys (`module`, `charges`, `data`, `settings`) | `derive-jsonb-schema` |
 | "What fraction of X has feature Y?" / "Adoption of …" | `feature-adoption` |
+| Analytical question on a big dataset (answer is a summary, not the rows) | `pre-aggregate` |
 | Result is leaving the chat (file / S3 / pipeline / app) | `format-output` |
 | Pin / verify a deterministic answer against fixed history | `regression-test` |
 | You hit friction — description didn't fire, ref re-read, tool gap | `observe` |
@@ -63,6 +64,8 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 **Where does the output go?** Once an answer leaves the chat — to a file, S3, a data pipeline, a Node/Python app — route through `references/output-formats.md` (consumer → format → tool → delivery). Default to CSV for humans, JSONL for apps, Parquet via `athena-unload.sh` for pipelines.
 
 **Token-friendly default.** Stdout caps at 1000 rows / 200 KB. When the cap fires, the tool tells you the escape valves (`--to-file`, `--head`, `--no-row-cap`, or route through `format-output`). Don't `--no-row-cap` silently — explain in your reply why the full output had to land in context. See rules.md #23.
+
+**Pull, then aggregate locally. Context is for interpretation, not iteration.** When an analytical question's answer is a *summary* (count / group-by / percentile / top-N / anomaly) but the underlying data is large, route through `pre-aggregate`: pay Athena once to produce a file, iterate on it with `duckdb-query.sh` for free, only the small summary enters context. See rules.md #24.
 
 ## Feedback loop pledge
 
@@ -83,7 +86,7 @@ Before publishing any number a human will act on, run `bash .agents/tools/regres
 - `bi/`, `ops/` — per-view documentation (grain, refresh, consumers).
 - `proposals/` — `retro` writes patches here for human review (never edits live files).
 - `evidence/`, `sessions/`, `feedback/` — gitignored runtime artefacts.
-- `FUTURE.md` — menu of unbuilt ideas (deferred tools, view pruning, pandas-first pre-aggregation, sub-agents, etc.). Pull from when a real signal emerges; don't burn through top-to-bottom.
+- `FUTURE.md` — menu of unbuilt ideas (deferred output tools, view pruning, cost baselines, sub-agents, etc.). Pull from when a real signal emerges; don't burn through top-to-bottom.
 
 ## Cross-references
 

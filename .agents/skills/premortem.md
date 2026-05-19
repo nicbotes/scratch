@@ -25,7 +25,7 @@ A two-minute gate that prevents 80% of the silent failures (wrong env filter, ce
    bash .agents/tools/athena-query.sh --dry-run "<your sql>"
    ```
    This runs `EXPLAIN`. Pair with the `bytes_scanned` from the session log if `ROOT_AGENTS_DEBUG=1`.
-5. **Decide.** If scan cost and return size are acceptable and the failure modes are mitigated (date filter present, env filter present, joins keyed correctly), proceed. If not, narrow first.
+5. **Decide.** If scan cost and return size are acceptable and the failure modes are mitigated (date filter present, env filter present, joins keyed correctly), proceed. If the return size is large but the **answer is a summary**, the decision is `route via pre-aggregate` — pull to file once, then slice locally with `duckdb-query.sh`. If the answer is the raw rows themselves and the consumer is external, the decision is `route via format-output`. If neither and the query is just too big, narrow first.
 6. Paste the premortem block into context. Subsequent reasoning refers back to it instead of repeating the analysis.
 
 ## Reference

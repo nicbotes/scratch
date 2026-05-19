@@ -4,6 +4,8 @@ Once you have an answer, where is it going? This decision matrix pairs **consume
 
 Sibling reference: `extension-shapes.md` decides **what artefact** a discovery becomes (recipe / skill / view / golden / …). This file decides **how that artefact's output is shaped and delivered.**
 
+> **Pre-aggregate first.** This matrix is for *machine* consumers (data pipelines, Node/Python apps, ops queues, BI tools). When the **agent itself** is the consumer — i.e. the answer needs interpretation, not just delivery — the right path is `pre-aggregate` instead: pull once to a file or S3, then loop in `duckdb-query.sh` for free. Only the small summary enters context. See `skills/pre-aggregate.md` and rules.md #24.
+
 ## Decision matrix
 
 | Consumer | Format | Tool | Delivery |

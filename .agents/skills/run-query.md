@@ -38,6 +38,11 @@ Workhorse. Most other skills compose this one.
 - **`--head N`** — header + first N data rows.
 - **`--no-row-cap`** — explicit override of the stdout cap. Pair with a sentence in your reply explaining why the full output had to land in context. The default cap is `ROOT_AGENTS_MAX_ROWS` (1000); above it, output truncates with a loud footer naming these escape valves.
 
-If you find yourself reaching for `--no-row-cap`, that's the framework telling you the output should be **formatted-and-delivered**, not pasted in chat. Route via `format-output` instead. See rules.md #23 and `references/output-formats.md`.
+If you find yourself reaching for `--no-row-cap`, that's the framework telling you to do one of two things:
 
-→ Next (if recurring): `bi-view` (analytical layer) or `ops-dataset` (action queue). Next (if leaving chat): `format-output`.
+- The answer is a **summary**, but the underlying data is large → route through `pre-aggregate`: pull to file with `--to-file`, then iterate with `duckdb-query.sh`. Only the summary lands in context. (Rules.md #24.)
+- The output is going to an **external consumer** (file / S3 / pipeline / app) → route through `format-output`. (Rules.md #23 + `references/output-formats.md`.)
+
+If you find yourself running the same wide SQL more than once to slice it different ways, you're paying Athena for each slice. Stop, pull once with `--to-file` or `athena-unload.sh`, then loop in DuckDB for free. See `skills/pre-aggregate.md`.
+
+→ Next (if recurring): `bi-view` (analytical layer) or `ops-dataset` (action queue). Next (if leaving chat): `format-output`. Next (if the answer is a summary on big data): `pre-aggregate`.

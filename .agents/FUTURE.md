@@ -19,30 +19,7 @@ Named in `references/output-formats.md` but not built. Each has a documented saf
 
 ---
 
-## 2. Context is for interpretation, not iteration (pandas-first)
-
-The single biggest token-saving idea after the row cap (rule #23). The principle:
-
-> Context tokens are scarce. Each row of CSV in context is one fewer token available for *thinking about what the data means*. So: raw data lives on disk / S3, local processing happens **in-file** (pandas / polars / duckdb), and **only the summarised result enters context.**
-
-Three-tier flow this would formalise:
-
-1. **Pull, don't print.** `athena-query.sh --to-file out.csv "..."` or `athena-unload.sh ... --format parquet`. The agent never sees the raw rows.
-2. **Process locally.** Pandas / Polars / DuckDB operate on the file. Aggregate, group, percentile, top-N, anomaly detect. Output: a small table.
-3. **Reason in context.** The agent sees only the summarised result and interprets it — what does it mean, what's anomalous, what's next.
-
-Concrete builds:
-
-- **`skills/pre-aggregate.md`** — names the principle and routes accordingly. *Use when:* the answer requires looking at many rows but the conclusion is a small table. *Do NOT use when:* you genuinely need the raw rows (compliance evidence, row-level ops queue).
-- **`tools/pandas-aggregate.sh`** — Python wrapper for common aggregations on a CSV / Parquet file. `pandas-aggregate.sh out.csv --group-by status --metric "count,sum(amount)/100"`. The agent composes operations via flags; doesn't write Python.
-- **`tools/duckdb-query.sh`** — DuckDB on a local file or S3 Parquet. Same Presto-ish SQL the agent already writes. Cheaper than re-querying Athena, no extra scan cost, fast iteration on aggregations.
-- **New rule** (`rules.md` #24): "Aggregate before reading. If the answer is a summary, do the summary on the file, not in context."
-
-Why DuckDB belongs here: speaks Presto-ish SQL, reads Parquet natively from local disk or S3, installs via `pip install duckdb`. Pair `athena-unload.sh` → Parquet → DuckDB and you have a closed-loop analytical environment that bills Athena exactly once per dataset, however many times you slice it locally.
-
----
-
-## 3. View hygiene & usage analytics
+## 2. View hygiene & usage analytics
 
 Today the framework happily accumulates `fact_*`, `dim_*`, and `ops_*_view` definitions in Athena. After a few sprints, this grows into a graveyard of stale views nobody reads.
 
@@ -54,7 +31,7 @@ Today the framework happily accumulates `fact_*`, `dim_*`, and `ops_*_view` defi
 
 ---
 
-## 4. Cost & performance baselines
+## 3. Cost & performance baselines
 
 - **Session scan budget.** Each session has an implicit cost: `bytes_scanned` accumulates in `.agents/sessions/<sid>.jsonl`. Retro surfaces "this session scanned 47 GB at ≈$0.24" and flags outliers. Optional hard cap: `ROOT_AGENTS_MAX_SESSION_BYTES` env var that triggers a confirmation prompt before exceeding.
 - **Per-query performance baselines.** `regression-record.sh` already captures `data_scanned_bytes` and `EngineExecutionTimeInMillis`. A future `regression-check` mode could fail not just on result mismatch but on **performance degradation** — "this used to scan 200 MB and now scans 2 GB; the underlying table grew or partition pruning broke".
@@ -63,7 +40,7 @@ Today the framework happily accumulates `fact_*`, `dim_*`, and `ops_*_view` defi
 
 ---
 
-## 5. Cross-session memory & lineage
+## 4. Cross-session memory & lineage
 
 - **Promotion archive.** When `retro` promotes a learned skill to canonical, archive the original under `.agents/promoted/<ts>-<name>.md` so the team can see what discoveries became canonical and when.
 - **Lineage for any output.** Given any committed artefact (`fact_*_view`, regression golden, evidence folder), an agent should be able to trace back: which session created it, which task triggered it, which input tables it depends on, which downstream consumers exist. The session log + manifests have enough information; what's missing is a `lineage.md` skill that traverses them.
@@ -71,7 +48,7 @@ Today the framework happily accumulates `fact_*`, `dim_*`, and `ops_*_view` defi
 
 ---
 
-## 6. Sub-agents (build only when the routing breaks)
+## 5. Sub-agents (build only when the routing breaks)
 
 `extension-shapes.md` already names sub-agents as a reserved shape. **Concrete trigger signals**:
 
@@ -96,7 +73,7 @@ The parent `AGENTS.md` becomes a thin router: identify the audience, hand off.
 
 ---
 
-## 7. Schema & data-quality drift
+## 6. Schema & data-quality drift
 
 `references/schema.md` drifts from reality the moment a column is added. The same is true for declared JSONB schemas the moment a product module adds a field.
 
@@ -107,14 +84,14 @@ The parent `AGENTS.md` becomes a thin router: identify the audience, hand off.
 
 ---
 
-## 8. Onboarding & discoverability
+## 7. Onboarding & discoverability
 
 - **`skills/onboard.md`** — walks a new team member through: set env vars → `whoami` → first `run-query` → first `profile-data` → first `feature-adoption` → first regression golden. Each step ends with "you should see X; if not, check Y".
 - **`tools/framework-status.sh`** — single command health check. Prints: current org, last query time, count of canonical / learned skills, count of regressions (pass / fail breakdown), count of views by prefix, age of last retro proposal. Run at session start when something feels off.
 
 ---
 
-## 9. Quality-of-life tooling
+## 8. Quality-of-life tooling
 
 - **REPL mode.** Interactive shell wrapping `athena-query.sh` so the agent can iterate without spawning a bash subprocess per call. Tiny TUI or just a `read -p` loop.
 - **Test fixtures for the framework itself.** A synthetic Athena (DuckDB pointed at a local Parquet fixture) so the framework's tools can be unit-tested without an AWS round-trip. Critical once the codebase grows past v1.
@@ -123,7 +100,7 @@ The parent `AGENTS.md` becomes a thin router: identify the audience, hand off.
 
 ---
 
-## 10. Anti-list — things explicitly **not** worth building
+## 9. Anti-list — things explicitly **not** worth building
 
 Worth recording so we don't reinvent these every six months.
 

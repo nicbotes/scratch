@@ -174,6 +174,45 @@ GROUP BY 1
 ORDER BY 1;
 ```
 
+## Pre-aggregate on Parquet (the pull-once-slice-many pattern)
+
+Pay Athena once to produce a typed Parquet file. Slice it locally with DuckDB as many times as the question needs — no extra scan cost.
+
+```bash
+# 1. Pull once
+bash .agents/tools/athena-unload.sh policies_2025q1 \
+  "SELECT
+     policy_id,
+     status,
+     module,
+     from_iso8601_timestamp(created_at) AS created_ts
+   FROM policies
+   WHERE environment = 'production'
+     AND created_at >= '2025-01-01'
+     AND created_at <  '2025-04-01'" \
+  --format parquet
+# → unload complete: s3://<bucket>/<org>/unloads/policies_2025q1/
+
+# 2. Aggregate locally — adoption by month
+bash .agents/tools/duckdb-query.sh \
+  "SELECT
+     date_trunc('month', created_ts) AS month,
+     COUNT(*) AS base,
+     COUNT_IF(JSON_EXTRACT_STRING(module, '\$.plan_type') = 'premium') AS adopters,
+     1.0 * COUNT_IF(JSON_EXTRACT_STRING(module, '\$.plan_type') = 'premium')
+         / NULLIF(COUNT(*), 0) AS rate
+   FROM 's3://<bucket>/<org>/unloads/policies_2025q1/*.parquet'
+   GROUP BY 1 ORDER BY 1"
+
+# 3. Same dataset, different slice — by status (still free, still local)
+bash .agents/tools/duckdb-query.sh \
+  "SELECT status, COUNT(*) AS n
+   FROM 's3://<bucket>/<org>/unloads/policies_2025q1/*.parquet'
+   GROUP BY status ORDER BY n DESC"
+```
+
+For smaller scopes, swap step 1 for `athena-query.sh --to-file /tmp/data.csv` and reference `'/tmp/data.csv'` in the DuckDB query. See `skills/pre-aggregate.md` for the full workflow.
+
 ## Parquet unload for a data pipeline
 
 Typed, columnar, snappy-compressed. Written straight to S3 — no CSV roundtrip, no type loss. The downstream pipeline reads the prefix.

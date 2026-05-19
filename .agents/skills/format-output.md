@@ -32,6 +32,13 @@ The end of the analytical loop. Format and delivery follow the consumer — neve
 
 **If you got here because `athena-query.sh` truncated:** that's by design (rules.md #23). The cap exists so the result doesn't burn the conversation's tokens. The right move is to pick a format and a sink from the matrix rather than reach for `--no-row-cap`.
 
+**format-output vs pre-aggregate.** Both involve writing to a file or S3 instead of stdout. The difference is the **consumer**:
+
+- This skill (`format-output`) — the consumer is a *machine* (data pipeline, Node/Python app, ops worker, BI tool). The output ships as Parquet / JSON / CSV and the consumer reads it.
+- `pre-aggregate` — the consumer is the *agent itself*. The file is a working artefact you'll loop over with `duckdb-query.sh` to extract a small summary that lands in context for interpretation.
+
+Pick `pre-aggregate` when the next step is "I need to think about this data". Pick `format-output` when the next step is "ship it to ___".
+
 When a consumer asks for "a file" with no other context, the safe default is **CSV to local file**. State the assumption ("delivering as CSV — say the word if you'd rather have JSONL / Parquet / etc.") so the consumer can redirect cheaply.
 
 When a consumer says "send it to our pipeline", the safe default is **Parquet via `athena-unload.sh` to S3** — typed, columnar, picked up by anything modern. Tell them the S3 URI.

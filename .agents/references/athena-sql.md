@@ -133,6 +133,23 @@ bash .agents/tools/athena-query.sh \
 
 The full reconciliation workflow (sampled + declared) is the `derive-jsonb-schema` skill.
 
+## DuckDB compatibility note
+
+`duckdb-query.sh` (see `skills/pre-aggregate.md`) speaks Presto/Trino-ish SQL — most idioms above port directly. Differences worth knowing:
+
+| Athena (Presto/Trino) | DuckDB |
+|---|---|
+| `JSON_EXTRACT_SCALAR(col, '$.k')` | `JSON_EXTRACT_STRING(col, '$.k')` — same semantics, different name |
+| `from_iso8601_timestamp(col)` | `CAST(col AS TIMESTAMP)` (DuckDB infers ISO 8601 directly) |
+| `approx_percentile(col, 0.95)` | `quantile_cont(col, 0.95)` or `approx_quantile(col, 0.95)` |
+| `date_diff('day', a, b)` | `date_diff('day', a, b)` — same |
+| `date_trunc('month', ts)` | `date_trunc('month', ts)` — same |
+| `COUNT_IF(predicate)` | `COUNT_IF(predicate)` — same (also `SUM(CASE WHEN … THEN 1 ELSE 0 END)`) |
+| `UNNEST(map_keys(CAST(col AS map<varchar, json>)))` | `UNNEST(json_keys(col))` — DuckDB has a direct helper |
+| no native `PIVOT` | native `PIVOT` / `UNPIVOT` — handy for cross-tabs |
+
+When in doubt, run the query through `duckdb-query.sh` once with `LIMIT 5` — DuckDB's error messages are unusually clear and will name the function it expected.
+
 ## Common surprises
 
 - **No `IF (cond, a, b)`** in some Athena versions — use `CASE WHEN cond THEN a ELSE b END`.
