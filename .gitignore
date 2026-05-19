@@ -1,0 +1,7 @@
+# Root Platform secrets — never commit
+.root-auth
+
+# Agent framework runtime artefacts (see .agents/AGENTS.md)
+.agents/evidence/
+.agents/sessions/
+.agents/feedback/
