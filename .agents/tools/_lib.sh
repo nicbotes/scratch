@@ -38,6 +38,24 @@ output_location() {
   printf 's3://%s/%s/' "$ROOT_ATHENA_S3_BUCKET" "$ROOT_ORG_ID"
 }
 
+# hash_id <value>
+# Deterministic short hash for committed-artefact identifiers. Used to keep
+# org_id (and similar) out of git plaintext while preserving per-org clustering
+# (same org -> same hash -> same regressions/<hash>/ folder). 16 hex chars
+# (64 bits) is plenty for collision resistance within a single team's golden set.
+# See rules.md #25.
+hash_id() {
+  local value="$1"
+  if command -v shasum >/dev/null; then
+    printf '%s' "$value" | shasum -a 256 | cut -c1-16
+  elif command -v sha256sum >/dev/null; then
+    printf '%s' "$value" | sha256sum | cut -c1-16
+  else
+    echo "error: neither shasum nor sha256sum on PATH" >&2
+    return 64
+  fi
+}
+
 _session_log() {
   local tool="$1" ok="$2" ms="$3" bytes="${4:-0}"
   local dir="$AGENTS_ROOT/sessions"

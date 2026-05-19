@@ -28,7 +28,6 @@ Today the framework happily accumulates `fact_*`, `dim_*`, and `ops_*_view` defi
 - **`skills/view-prune.md`** — reads the usage stats, lists views with zero reads in the last 30 days, proposes deletions under `.agents/proposals/<ts>/prune-views.md`. Never auto-deletes — proposals only (rules.md #13).
 - **View documentation freshness** — each `fact_*_view` / `ops_*_view` has a sibling under `.agents/bi/` or `.agents/ops/`. A retro pass flags views whose sibling doc hasn't been touched in N months. Drift between docs and SQL is a real risk.
 - **Regression golden hygiene** — a retro pass that proposes deletion of goldens whose underlying view was deleted, or whose `captured_at` is older than the team's lookback window.
-- **Redaction in committed artefacts** — `regression-record.sh` and the feedback JSONL writer should strip or blank internal identifiers (`org_id`, query execution IDs) before writing. These fields are useful for local debugging but should never be committed to a public repo. Standard pattern: record them in the local session log only; zero them out in any file that lands under version control.
 
 ---
 

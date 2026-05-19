@@ -2,12 +2,18 @@
 # regression-check.sh <name>
 # regression-check.sh --all
 # Re-runs each golden's SQL and asserts the result matches the recorded value.
+#
+# Goldens are stored under .agents/regressions/<org_id_hash>/<name>.json so
+# multiple orgs can coexist in one repo without collision. --all iterates
+# only the current org's subfolder; other orgs' goldens are ignored.
+# See rules.md #25.
 
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
 require_env
 
-dir="$AGENTS_ROOT/regressions"
+org_hash="$(hash_id "$ROOT_ORG_ID")"
+dir="$AGENTS_ROOT/regressions/$org_hash"
 
 DIFF_CAP=50
 
@@ -47,7 +53,7 @@ if [[ "${1:-}" == "--all" ]]; then
   shopt -s nullglob
   files=("$dir"/*.json)
   if (( ${#files[@]} == 0 )); then
-    echo "no regressions recorded in $dir"
+    echo "no regressions recorded for this org in $dir"
     exit 0
   fi
   pass=0; fail=0
@@ -69,6 +75,7 @@ fi
 file="$dir/$name.json"
 if [[ ! -e "$file" ]]; then
   echo "error: no such golden: $file" >&2
+  echo "(goldens are scoped to this org's hash; if you expected a cross-org check, switch ROOT_ORG_ID first)" >&2
   exit 64
 fi
 check_one "$file"

@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # regression-record.sh <name> "<sql>" [--re-record --note "<reason>"]
-# Captures a deterministic golden under .agents/regressions/<name>.json.
+# Captures a deterministic golden under .agents/regressions/<org_id_hash>/<name>.json.
 #
 # Hard requirements:
 #   - SQL must contain a closed historical time bound — either BETWEEN, or
 #     both '>=' and '<' (or both '>' and '<='). NOW()/CURRENT_DATE rejected.
 #   - <name>.json must not already exist unless --re-record is passed with
 #     --note explaining why (data backfill, source correction, etc.).
+#
+# Goldens are committed to git. To avoid leaking org identifiers, the raw
+# org_id is hashed into the path and the JSON, and query_execution_id is
+# omitted entirely. See rules.md #25.
 
 set -euo pipefail
 source "$(dirname "$0")/_lib.sh"
@@ -51,7 +55,14 @@ if (( has_between == 0 )) && { (( has_lower == 0 )) || (( has_upper == 0 )); }; 
   exit 64
 fi
 
-out="$AGENTS_ROOT/regressions/$name.json"
+# Compute the org-hash subfolder before validation — we still need require_env
+# for that since ROOT_ORG_ID is required. Order: validate SQL shape first
+# (cheap, no env needed); then require_env; then compute org_hash + path.
+require_env
+org_hash="$(hash_id "$ROOT_ORG_ID")"
+out_dir="$AGENTS_ROOT/regressions/$org_hash"
+out="$out_dir/$name.json"
+
 if [[ -e "$out" && $re_record -eq 0 ]]; then
   echo "error: $out already exists. To overwrite, pass --re-record --note \"<reason>\"." >&2
   exit 64
@@ -62,7 +73,6 @@ if [[ $re_record -eq 1 && -z "$note" ]]; then
 fi
 
 # 3. Run and capture
-require_env
 qid="$(run_athena "$sql")"
 result="$(fetch_results "$qid")"
 
@@ -78,17 +88,16 @@ j_note="$(printf '%s' "$note" | escape_json)"
 bytes="$(aws athena get-query-execution --query-execution-id "$qid" \
   --output text --query 'QueryExecution.Statistics.DataScannedInBytes' 2>/dev/null || echo 0)"
 
-mkdir -p "$AGENTS_ROOT/regressions"
+mkdir -p "$out_dir"
 cat > "$out" <<EOF
 {
   "name": "$name",
   "captured_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "captured_by": "agent",
-  "org_id": "$ROOT_ORG_ID",
+  "org_id_hash": "$org_hash",
   "env": "$ROOT_ENV",
   "sql": $j_sql,
   "result": $j_res,
-  "query_execution_id": "$qid",
   "data_scanned_bytes": $bytes,
   "re_recorded": $([[ $re_record -eq 1 ]] && echo true || echo false),
   "note": $j_note
