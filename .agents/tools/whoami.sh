@@ -20,10 +20,12 @@ if [[ -z "$row" ]]; then
 fi
 
 name="$(echo "$row" | awk -F',' '{print $2}')"
+org_hash="$(hash_id "$ROOT_ORG_ID")"
 
 cat <<EOF
-Org:    $name
-Org ID: $ROOT_ORG_ID
-Region: $AWS_REGION
-Env:    $ROOT_ENV
+Org:      $name
+Org ID:   $ROOT_ORG_ID
+Org hash: $org_hash
+Region:   $AWS_REGION
+Env:      $ROOT_ENV
 EOF

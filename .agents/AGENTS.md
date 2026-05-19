@@ -82,11 +82,12 @@ Before publishing any number a human will act on, run `bash .agents/tools/regres
 - `skills/learned/` — agent-emitted skills from prior sessions. Lower-trust; carry a banner. Promoted to canonical via `retro`.
 - `tools/` — bash scripts wrapping `aws athena` / `aws s3`. Composable.
 - `references/` — schema catalog, Athena SQL gotchas, env-var setup, feedback schema, example queries.
-- `regressions/` — committed deterministic goldens.
+- `regressions/<org_id_hash>/` — committed deterministic goldens, **per-org subfolder by hash** so multiple orgs coexist without leaking raw IDs to git. See rules.md #25.
 - `bi/`, `ops/` — per-view documentation (grain, refresh, consumers).
 - `proposals/` — `retro` writes patches here for human review (never edits live files).
 - `evidence/`, `sessions/`, `feedback/` — gitignored runtime artefacts.
 - `FUTURE.md` — menu of unbuilt ideas (deferred output tools, view pruning, cost baselines, sub-agents, etc.). Pull from when a real signal emerges; don't burn through top-to-bottom.
+- `DESIGN.md` — design history. Six phases of why-it-looks-like-this for new developers. Read this when you want the rationale behind a skill, rule, or tool; read `AGENTS.md` (this file) when you want the current shape.
 
 ## Cross-references
 

@@ -8,5 +8,8 @@
 # Agent framework runtime artefacts (see .agents/AGENTS.md)
 .agents/evidence/
 .agents/sessions/
-.agents/regressions/
 .agents/feedback/
+
+# .agents/regressions/ is *committed* — see rules.md #25.
+# Identifiers are hashed (org_id → org_id_hash; query_execution_id omitted)
+# so per-org goldens coexist without leaking raw org IDs to git.

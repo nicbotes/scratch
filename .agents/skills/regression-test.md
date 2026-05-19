@@ -61,5 +61,10 @@ Bad golden shapes:
 - `SELECT COUNT(*) FROM policies WHERE status = 'active'` — drifts daily, every passing day breaks the test.
 - `WHERE created_at >= '2025-01-01'` (no upper bound) — same problem, slower drift.
 - Anything querying `_view` definitions you're actively iterating on — pin only stable views.
+- **Row-level captures** (e.g. `SELECT * FROM policies WHERE policy_id = '…'`) — these belong in `compliance-query` → `export-results.sh` (gitignored evidence), **not** in a committed golden. Rule #15.
 
-→ Cross-references: `rules.md` #14, #15.
+## On-disk layout
+
+Goldens live under `.agents/regressions/<org_id_hash>/<name>.json` — one subfolder per org, hash computed from `$ROOT_ORG_ID` via `hash_id` (rules.md #25). Multiple orgs' goldens coexist in the same repo without colliding; raw `org_id` never lands in git. `regression-check --all` only iterates the current org's subfolder. `bash .agents/tools/whoami.sh` prints `Org hash:` so you can map subfolders to orgs.
+
+→ Cross-references: `rules.md` #14, #15, #25.
