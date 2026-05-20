@@ -107,20 +107,52 @@ if not sensitive_lines:
     print("Every recorded tool call was either non-sensitive or routed PII output to disk/S3 without entering the agent's context. No further review required.\n")
 else:
     print("## Sensitive-touching invocations\n")
-    print("| Time (UTC) | Tool | Override | Reason | Table / details |")
-    print("|---|---|---|---|---|")
+    print("| Time (UTC) | Tool | Override | Reason | Touched columns | Details |")
+    print("|---|---|---|---|---|---|")
     for r in sensitive_lines:
         ts = r.get("ts", "?")
         tool = r.get("tool", "?")
         override = "yes" if r.get("pii_required") is True else ("to-file" if r.get("pii_to_file") is True else "-")
         reason = (r.get("reason") or "").replace("|", "\\|").replace("\n", " ")
+        # Compose the touched-columns column from the per-bucket fields,
+        # omitting empty buckets so the cell stays readable.
+        touched_parts = []
+        for label, key in (
+            ("pii", "touched_pii"),
+            ("restricted", "touched_restricted"),
+            ("json_sensitive", "touched_json_sensitive"),
+            ("json_paths", "touched_json_paths"),
+            # pii-lookup uses a different shape: the requested columns are in touched_columns
+            ("columns", "touched_columns"),
+        ):
+            v = r.get(key)
+            if v:
+                touched_parts.append(f"{label}={v}")
+        touched = "; ".join(touched_parts) or "-"
+        # Tool-specific details (table, id_col, rows)
         detail_parts = []
         for k in ("table", "id_col", "rows"):
             if k in r:
                 detail_parts.append(f"{k}={r[k]}")
         detail = ", ".join(detail_parts) or "-"
-        print(f"| {ts} | {tool} | {override} | {reason} | {detail} |")
+        print(f"| {ts} | {tool} | {override} | {reason} | {touched} | {detail} |")
     print()
+    # Aggregate view: which columns were touched across this audit window?
+    col_counter = Counter()
+    for r in sensitive_lines:
+        for key in ("touched_pii", "touched_restricted", "touched_json_sensitive", "touched_columns"):
+            v = r.get(key) or ""
+            for c in v.split(","):
+                c = c.strip()
+                if c and c != "*":
+                    col_counter[c] += 1
+    if col_counter:
+        print("## Most-touched sensitive columns\n")
+        print("| Column | Times touched |")
+        print("|---|---|")
+        for col, n in col_counter.most_common(20):
+            print(f"| `{col}` | {n} |")
+        print()
 EOF
 )"
 
