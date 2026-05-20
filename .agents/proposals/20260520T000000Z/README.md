@@ -8,9 +8,7 @@ Per rules.md #13, this folder does **not** edit live files. Apply happens in a f
 
 | # | Proposal | Targets | Source notes | Dependencies |
 |---|---|---|---|---|
-| 3 | [03-to-file-row-count-fallback.md](./03-to-file-row-count-fallback.md) | `tools/athena-query.sh` | 14:19:59Z (rows=0 bug) + feature-request #2 | — |
 | 4 | [04-glue-describe-tool.md](./04-glue-describe-tool.md) | new `tools/glue-describe.sh` | 13:44:00Z | — |
-| 5 | [05-profile-table-env-column-guard.md](./05-profile-table-env-column-guard.md) | `tools/profile-table.sh` | 13:44:00Z (tail), 09:11:38Z | independent of #4 (uses Athena `DESCRIBE`) |
 | 6 | [06-rules-timestamp-and-duckdb-types.md](./06-rules-timestamp-and-duckdb-types.md) | `rules.md`, `references/examples.md` | 14:03:13Z, 14:14:53Z, 14:19:59Z | — |
 | 7 | [07-schema-missing-columns-callout.md](./07-schema-missing-columns-callout.md) | `references/schema.md` | 09:11:38Z | — |
 | 8 | [08-rules-proactive-evidence-export.md](./08-rules-proactive-evidence-export.md) | `rules.md` (#11 broadened) | 13:15:38Z | — |
