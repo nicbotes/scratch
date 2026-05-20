@@ -20,6 +20,22 @@ _debug() {
 }
 
 require_env() {
+  # Auto-detect AWS_REGION from the bucket when unset. Keeps the dashboard
+  # setup at four values (key id, secret, org id, bucket) instead of five.
+  # Each fresh shell pays one S3 call (~50ms); subsequent calls reuse the export.
+  if [[ -z "${AWS_REGION:-}" && -n "${ROOT_ATHENA_S3_BUCKET:-}" \
+        && -n "${AWS_ACCESS_KEY_ID:-}" && -n "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
+    local detected
+    detected="$(aws s3api get-bucket-location --bucket "$ROOT_ATHENA_S3_BUCKET" \
+      --query 'LocationConstraint' --output text 2>/dev/null || true)"
+    # us-east-1 returns "None" (legacy AWS quirk); also normalise empty.
+    if [[ -z "$detected" || "$detected" == "None" ]]; then
+      detected="us-east-1"
+    fi
+    export AWS_REGION="$detected"
+    _debug "auto-detected AWS_REGION=$AWS_REGION from $ROOT_ATHENA_S3_BUCKET"
+  fi
+
   local missing=()
   for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION ROOT_ORG_ID ROOT_ATHENA_S3_BUCKET; do
     if [[ -z "${!v:-}" ]]; then

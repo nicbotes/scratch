@@ -8,8 +8,6 @@ Per rules.md #13, this folder does **not** edit live files. Apply happens in a f
 
 | # | Proposal | Targets | Source notes | Dependencies |
 |---|---|---|---|---|
-| 1 | [01-prerequisites-duckdb-env-gitignore.md](./01-prerequisites-duckdb-env-gitignore.md) | `AGENTS.md`, `references/env-vars.md` | 07:29:00Z, 07:29:10Z, 07:36:13Z (×2) | — |
-| 2 | [02-aws-region-auto-detect.md](./02-aws-region-auto-detect.md) | `tools/_lib.sh`, `references/env-vars.md`, `AGENTS.md`, `.env.example` | 09:05:16Z, 09:05:34Z | — |
 | 3 | [03-to-file-row-count-fallback.md](./03-to-file-row-count-fallback.md) | `tools/athena-query.sh` | 14:19:59Z (rows=0 bug) + feature-request #2 | — |
 | 4 | [04-glue-describe-tool.md](./04-glue-describe-tool.md) | new `tools/glue-describe.sh` | 13:44:00Z | — |
 | 5 | [05-profile-table-env-column-guard.md](./05-profile-table-env-column-guard.md) | `tools/profile-table.sh` | 13:44:00Z (tail), 09:11:38Z | independent of #4 (uses Athena `DESCRIBE`) |

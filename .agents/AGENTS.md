@@ -6,13 +6,29 @@ You are operating the Root Data Adapter via AWS CLI. This framework gives you ev
 
 ## Prerequisites
 
-`aws` CLI on `$PATH` (v2). Credentials and connection details come from Root Dashboard → Data Management → Data Adapter → Generate Access Key.
+Two binaries on `$PATH`:
+
+- `aws` CLI v2 — Athena queries (`brew install awscli`)
+- `duckdb` — local pre-aggregation (`brew install duckdb`); required by `tools/duckdb-query.sh` and rules.md #24
+
+Credentials and connection details come from Root Dashboard → Data Management → Data Adapter → Generate Access Key.
+
+### Fastest setup
+
+```bash
+cp .agents/.env.example .agents/.env   # template is committed
+# edit .agents/.env with the four values from the Generate Access Key modal
+source .agents/.env
+bash .agents/tools/whoami.sh           # confirms the org you're now in
+```
+
+`.env` is gitignored alongside `.root-auth`. Sourcing it once per shell beats re-exporting every session.
 
 | Env var | Required | Purpose |
 |---|---|---|
 | `AWS_ACCESS_KEY_ID` | yes | AWS auth |
 | `AWS_SECRET_ACCESS_KEY` | yes | AWS auth |
-| `AWS_REGION` | yes | Region the org's Athena lives in |
+| `AWS_REGION` | no (auto-detected) | Region the org's Athena lives in. Inferred from `ROOT_ATHENA_S3_BUCKET` via `aws s3api get-bucket-location`. Export only to override. |
 | `ROOT_ORG_ID` | yes | Active org — used as workgroup, database/schema, and S3 prefix |
 | `ROOT_ATHENA_S3_BUCKET` | yes | Bucket where Athena results land (output = `s3://$BUCKET/$ROOT_ORG_ID/`) |
 | `ROOT_ENV` | no (default `production`) | `production` or `sandbox` — used in every `WHERE` filter |
