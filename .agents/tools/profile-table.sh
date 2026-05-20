@@ -19,16 +19,14 @@ if [[ -z "$table" ]]; then
   exit 64
 fi
 
-# Columns first — we need to know whether the table has `environment` before
-# we build the row-count query. DESCRIBE is cheap (no bytes scanned). Some
-# tables (users, organizations, api_keys, ...) have no `environment` column;
-# adding the predicate unconditionally would COLUMN_NOT_FOUND.
-qid="$(run_athena "DESCRIBE \"$table\"")"
-columns="$(fetch_results "$qid")"
+# Columns + env-column probe via the Glue metastore — no Athena query, no
+# bytes scanned, no DESCRIBE quoting quirks. Some tables (users, organizations,
+# api_keys, ...) have no `environment` column; adding the predicate
+# unconditionally would COLUMN_NOT_FOUND.
+columns="$(bash "$(dirname "$0")/glue-describe.sh" --columns "$table")"
 
 has_env_column=0
-if printf '%s\n' "$columns" | awk -F',' 'NR>1 {gsub(/"/,"",$1); print $1}' \
-    | grep -qx 'environment'; then
+if bash "$(dirname "$0")/glue-describe.sh" --has-column "$table" environment; then
   has_env_column=1
 fi
 

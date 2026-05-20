@@ -155,6 +155,16 @@ run_athena() {
     --result-configuration "OutputLocation=$(output_location)" \
     --output text --query 'QueryExecutionId')"
 
+  # Fail-fast on empty/None qid. Command substitution doesn't trip `set -e`,
+  # so a SQL syntax error (or unauthorised workgroup) silently produces an
+  # empty qid and the polling loop below would otherwise call
+  # get-query-execution with --query-execution-id "" forever.
+  if [[ -z "$qid" || "$qid" == "None" ]]; then
+    echo "athena start-query-execution returned no QueryExecutionId — usually a SQL syntax error or unauthorised database/workgroup" >&2
+    _session_log "run_athena" "false" "0" "0"
+    return 1
+  fi
+
   _debug "query execution id: $qid"
 
   # Poll with backoff: 1s, 1s, 2s, 3s, 5s, 8s, 13s (Fibonacci-ish), max 60s
