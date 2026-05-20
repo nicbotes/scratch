@@ -22,6 +22,8 @@ format="csv"
 head_n=""
 to_file=""
 no_row_cap=0
+pii_required=0
+reason=""
 
 while (( $# )); do
   case "$1" in
@@ -54,6 +56,8 @@ while (( $# )); do
       shift 2
       ;;
     --no-row-cap) no_row_cap=1; shift ;;
+    --pii-required) pii_required=1; shift ;;
+    --reason) reason="${2:-}"; shift 2 ;;
     --) shift; break ;;
     -*) echo "unknown flag: $1" >&2; exit 64 ;;
     *) break ;;
@@ -65,9 +69,18 @@ if [[ -z "$sql" ]]; then
   if [[ ! -t 0 ]]; then
     sql="$(cat)"
   else
-    echo 'usage: athena-query.sh [--dry-run] [--format csv|json|jsonl|tsv] [--head N] [--to-file <path>] [--no-row-cap] "<sql>"' >&2
+    echo 'usage: athena-query.sh [--dry-run] [--format csv|json|jsonl|tsv] [--head N] [--to-file <path>] [--no-row-cap] [--pii-required --reason "<why>"] "<sql>"' >&2
     exit 64
   fi
+fi
+
+# PII firewall — pre-flight (regex). Catches obvious cases without paying
+# Athena for the query. False positives are fine — the override exists for
+# legitimate overrides. EXPLAIN is exempt (returns a plan, not data).
+if (( dry_run == 0 )); then
+  override_ok=0
+  [[ -n "$to_file" ]] && override_ok=1
+  pii_required_or_fail "$sql" "$pii_required" "$reason" "athena-query" "$override_ok"
 fi
 
 if (( dry_run )); then
@@ -77,6 +90,14 @@ if (( dry_run )); then
 fi
 
 qid="$(run_athena "$sql")"
+
+# PII firewall — inline (authoritative). Now that Athena has computed the
+# query, we ask it what columns the result actually contains and gate on
+# that. Catches aliased columns and computed PII that the pre-flight missed.
+# Rules #26, #27, #28.
+override_ok=0
+[[ -n "$to_file" ]] && override_ok=1
+pii_required_or_fail_inline "$qid" "$sql" "$pii_required" "$reason" "athena-query" "$override_ok"
 total_rows="${LAST_QUERY_ROWS:-0}"
 
 # Fetch the full CSV first (we always need it; Athena already wrote it to S3)

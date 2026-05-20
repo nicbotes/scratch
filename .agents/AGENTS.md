@@ -39,6 +39,7 @@ bash .agents/tools/whoami.sh           # confirms the org you're now in
 | `ROOT_AGENTS_SESSION_ID` | no | Namespace for session traces & feedback |
 | `ROOT_API_KEY` | no (`root-api.sh` only) | Root Dashboard API key. Falls back to `.root-auth`. Used for module-schema lookups; independent of AWS |
 | `ROOT_API_BASE_URL` | no | Defaults to `https://api.rootplatform.com` |
+| `ROOT_AGENTS_COMPLIANCE_MODE` | no (default `strict`) | PII safety strictness: `strict` (require `--pii-required --reason` even with `--to-file`), `standard` (--to-file alone is fine), `off` (dev only — warning per call). See `references/pii-safety.md` and rules.md #26–#28 |
 
 See `references/env-vars.md` for the dashboard walkthrough.
 
@@ -71,6 +72,7 @@ diff -u .agents/.env .env.suggested   # review before swapping
 | Reusable analytical layer for a BI tool / KPI dashboard | `bi-view` (Kimball: `fact_*`, `dim_*`) |
 | "The list of things ops needs to action" / flat denormalised feed | `ops-dataset` (`ops_*_view`) |
 | Working view I'm iterating on — not yet stable enough to promote | `save-view.sh --scratch [<ns>]` → `scratch_<ns>_*_view` |
+| Sensitive-column analysis (PII tables or json_sensitive columns) | `pii-safe-analysis` |
 | "Across all our orgs…" — one-shot, concatenated CSV | `multi-org-query` |
 | "System-wide / internal insights" — iterate the cross-org dataset locally | `cross-org-explore` |
 | JSONB column with unknown keys (`module`, `charges`, `data`, `settings`) | `derive-jsonb-schema` |
@@ -95,6 +97,8 @@ diff -u .agents/.env .env.suggested   # review before swapping
 
 **Pull, then aggregate locally. Context is for interpretation, not iteration.** When an analytical question's answer is a *summary* (count / group-by / percentile / top-N / anomaly) but the underlying data is large, route through `pre-aggregate`: pay Athena once to produce a file, iterate on it with `duckdb-query.sh` for free, only the small summary enters context. See rules.md #24.
 
+**PII never reaches your context or your reply.** Default mode is `strict`. Sensitive SELECTs are blocked from stdout by an inline schema check at execution time — `athena-query.sh` reads the actual result columns Athena returns and refuses if any are tagged `pii` / `restricted` / `json_sensitive` in `references/pii-columns.json`. Override is `--pii-required --reason "<text>"` (logged). For analytical work that needs to touch PII, route via `pii-safe-analysis`: pull to file → `pseudonymize.sh` → `duckdb-query.sh` over hashed values. See rules.md #26–#28 and `references/pii-safety.md`.
+
 ## Feedback loop pledge
 
 If anything in this framework felt wrong — a description that didn't fire, a reference you had to re-open, a rule you wished existed, a tool flag you needed — call `observe` immediately. One note per friction event. At end of session, run `retro` to turn those notes into proposed edits under `.agents/proposals/`. The cost of skipping is paying the same friction again next session.
@@ -111,6 +115,7 @@ Before publishing any number a human will act on, run `bash .agents/tools/regres
 - `tools/` — bash scripts wrapping `aws athena` / `aws s3`. Composable.
 - `references/` — schema catalog, Athena SQL gotchas, env-var setup, feedback schema, example queries.
 - `regressions/<org_id_hash>/` — committed deterministic goldens, **per-org subfolder by hash** so multiple orgs coexist without leaking raw IDs to git. See rules.md #25.
+- `sensitive/` — gitignored prefix for PII-bearing exports (`export-results.sh` when SQL touches sensitive columns; `pii-lookup.sh` results). Separate from `evidence/` for tighter access control downstream.
 - `bi/`, `ops/` — per-view documentation (grain, refresh, consumers). Scratch views are intentionally undocumented — they're ephemeral; if it earns a doc page, it's ready to be promoted.
 - `proposals/` — `retro` writes patches here for human review (never edits live files).
 - `evidence/`, `sessions/`, `feedback/` — gitignored runtime artefacts.

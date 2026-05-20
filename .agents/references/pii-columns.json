@@ -1,0 +1,129 @@
+{
+  "_comment": "PII / restricted sensitivity tags per table.column. The SQL firewall in tools/_lib.sh::scan_sql_for_sensitivity reads this to decide which queries need --pii-required. Human-readable per-table notes live in references/schema.md; this file is the structured source. Sensitivity values: 'pii' (directly identifies a person), 'restricted' (sensitive non-identifying), 'json_sensitive' (JSON column whose contents may contain PII — requires derive-jsonb-schema before bulk extraction; specific paths can be marked safe in the resulting learned skill).",
+  "tables": {
+    "policyholders": {
+      "columns": {
+        "first_name":                { "sensitivity": "pii" },
+        "last_name":                 { "sensitivity": "pii" },
+        "middle_name":               { "sensitivity": "pii" },
+        "initials":                  { "sensitivity": "pii" },
+        "date_of_birth":             { "sensitivity": "pii" },
+        "identification_number":     { "sensitivity": "pii" },
+        "identification_expiration_date": { "sensitivity": "pii" },
+        "email":                     { "sensitivity": "pii" },
+        "cellphone":                 { "sensitivity": "pii" },
+        "phone_other":               { "sensitivity": "pii" },
+        "address_line_1":            { "sensitivity": "pii" },
+        "address_line_2":            { "sensitivity": "pii" },
+        "suburb":                    { "sensitivity": "pii" },
+        "city":                      { "sensitivity": "pii" },
+        "area_code":                 { "sensitivity": "pii" },
+        "google_place_id":           { "sensitivity": "pii" },
+        "geo_coordinates_latitude":  { "sensitivity": "pii" },
+        "geo_coordinates_longitude": { "sensitivity": "pii" },
+        "registration_number":       { "sensitivity": "pii" },
+        "app_data":                  { "sensitivity": "json_sensitive" },
+        "attachments":               { "sensitivity": "json_sensitive" },
+        "notes":                     { "sensitivity": "json_sensitive" }
+      }
+    },
+    "members": {
+      "columns": {
+        "first_name":             { "sensitivity": "pii" },
+        "last_name":              { "sensitivity": "pii" },
+        "middle_name":            { "sensitivity": "pii" },
+        "date_of_birth":          { "sensitivity": "pii" },
+        "identification_number":  { "sensitivity": "pii" },
+        "email":                  { "sensitivity": "pii" },
+        "cellphone":              { "sensitivity": "pii" },
+        "app_data":               { "sensitivity": "json_sensitive" }
+      }
+    },
+    "leads": {
+      "columns": {
+        "first_name":            { "sensitivity": "pii" },
+        "last_name":             { "sensitivity": "pii" },
+        "email":                 { "sensitivity": "pii" },
+        "phone":                 { "sensitivity": "pii" },
+        "cellphone":             { "sensitivity": "pii" },
+        "date_of_birth":         { "sensitivity": "pii" },
+        "identification_number": { "sensitivity": "pii" },
+        "identification_expiration_date": { "sensitivity": "pii" }
+      }
+    },
+    "payment_methods": {
+      "columns": {
+        "account_number":       { "sensitivity": "restricted" },
+        "account_holder_name":  { "sensitivity": "pii" },
+        "card_number":          { "sensitivity": "restricted" },
+        "card_last_4_digits":   { "sensitivity": "restricted" },
+        "card_brand":           { "sensitivity": "restricted" },
+        "config":               { "sensitivity": "json_sensitive" }
+      }
+    },
+    "calls": {
+      "columns": {
+        "phone_number": { "sensitivity": "pii" },
+        "transcript":   { "sensitivity": "json_sensitive" },
+        "input_data":   { "sensitivity": "json_sensitive" },
+        "notes":        { "sensitivity": "json_sensitive" }
+      }
+    },
+    "users": {
+      "columns": {
+        "email":         { "sensitivity": "pii" },
+        "date_of_birth": { "sensitivity": "pii" }
+      }
+    },
+    "policies": {
+      "columns": {
+        "module":         { "sensitivity": "json_sensitive" },
+        "app_data":       { "sensitivity": "json_sensitive" },
+        "beneficiaries":  { "sensitivity": "json_sensitive" },
+        "covered_people": { "sensitivity": "json_sensitive" },
+        "covered_items":  { "sensitivity": "json_sensitive" },
+        "notes":          { "sensitivity": "json_sensitive" },
+        "attachments":    { "sensitivity": "json_sensitive" },
+        "charges":        { "sensitivity": "restricted" }
+      }
+    },
+    "applications": {
+      "columns": {
+        "module":        { "sensitivity": "json_sensitive" },
+        "input_data":    { "sensitivity": "json_sensitive" },
+        "beneficiaries": { "sensitivity": "json_sensitive" },
+        "attachments":   { "sensitivity": "json_sensitive" },
+        "notes":         { "sensitivity": "json_sensitive" }
+      }
+    },
+    "claims": {
+      "columns": {
+        "module":       { "sensitivity": "json_sensitive" },
+        "block_states": { "sensitivity": "json_sensitive" },
+        "notes":        { "sensitivity": "json_sensitive" }
+      }
+    },
+    "alteration_packages": {
+      "columns": {
+        "module":     { "sensitivity": "json_sensitive" },
+        "input_data": { "sensitivity": "json_sensitive" }
+      }
+    },
+    "quote_packages": {
+      "columns": {
+        "module":     { "sensitivity": "json_sensitive" },
+        "input_data": { "sensitivity": "json_sensitive" }
+      }
+    },
+    "policy_events": {
+      "columns": {
+        "data": { "sensitivity": "json_sensitive" }
+      }
+    },
+    "complaints": {
+      "columns": {
+        "notes": { "sensitivity": "json_sensitive" }
+      }
+    }
+  }
+}

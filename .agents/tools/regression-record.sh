@@ -35,6 +35,27 @@ if [[ -z "$name" || -z "$sql" ]]; then
   exit 64
 fi
 
+# 0. Reject sensitive SQL outright. Goldens commit to git; sensitive values
+# never belong in a golden. Rule #15 + #26. The committed result field is
+# innocuous only when the SQL is aggregate-shaped against non-sensitive
+# columns. No --pii-required override here — the constraint is structural.
+if is_sensitive_query "$sql"; then
+  scan="$(scan_sql_for_sensitivity "$sql")"
+  summary="$(_sensitive_summary "$scan")"
+  cat >&2 <<EOF
+error: regression goldens must be sensitive-free.
+  $summary
+Goldens are committed to git; sensitive values can't go there. Rules #15, #26.
+
+Options:
+  1. Restructure the golden to be aggregate-shaped on non-sensitive columns
+     (e.g. SUM(monthly_premium), COUNT(*) GROUP BY status).
+  2. If you need a per-subject deterministic check, use compliance-query
+     + export-results.sh — those write to .agents/sensitive/ (gitignored).
+EOF
+  exit 64
+fi
+
 # 1. Reject non-deterministic SQL
 if grep -Eqi '\b(NOW|CURRENT_DATE|CURRENT_TIMESTAMP|CURRENT_TIME|LOCALTIMESTAMP|LOCALTIME)\b' <<<"$sql"; then
   echo "error: SQL contains a non-deterministic time function (NOW/CURRENT_*)." >&2
@@ -74,6 +95,25 @@ fi
 
 # 3. Run and capture
 qid="$(run_athena "$sql")"
+
+# Inline result-schema check — authoritative. The pre-flight regex at step
+# 0 should have caught most sensitive SQL, but the inline check catches
+# aliased PII columns and computed-PII patterns. Rules #15, #26.
+exec_scan="$(check_executed_query_sensitivity "$qid")"
+if echo "$exec_scan" | grep -Eq '(pii|restricted|json_sensitive)=[^ ]+'; then
+  summary="$(_sensitive_summary "$exec_scan")"
+  cat >&2 <<EOF
+error: regression goldens must be sensitive-free (inline schema check).
+  $summary
+The result schema Athena returned contains tagged columns. Goldens commit to
+git; this can't go there even with an override.
+
+Re-shape the SQL to drop the sensitive columns. Aggregate-only queries
+(SUM/COUNT/AVG) never trip this check.
+EOF
+  exit 64
+fi
+
 result="$(fetch_results "$qid")"
 
 # Compact result and SQL into JSON-safe strings
