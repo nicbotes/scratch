@@ -2,8 +2,9 @@
 # athena-unload.sh <name> "<sql>" [--format parquet|orc|json] [--compression snappy|gzip|none] [--partition-by col1,col2] [--re-unload]
 #
 # Wraps Athena's UNLOAD statement. Writes typed columnar output (default
-# Parquet, snappy-compressed) to s3://$ROOT_ATHENA_S3_BUCKET/$ROOT_ORG_ID/unloads/<name>/
-# so downstream pipelines (Spark, dbt, Node/Python apps) can pull from S3.
+# Parquet, snappy-compressed) to <workgroup-output-location>/unloads/<name>/
+# (resolved at runtime via unload_prefix in _lib.sh), so downstream pipelines
+# (Spark, dbt, Node/Python apps) can pull from S3.
 #
 # Refuses DDL keywords in the SQL — UNLOAD wraps SELECT only.
 # Refuses overwrite without --re-unload — never silently overwrite a published artefact.
@@ -64,7 +65,7 @@ fi
 require_env
 
 # Check for existing unload prefix unless --re-unload
-prefix="s3://$ROOT_ATHENA_S3_BUCKET/$ROOT_ORG_ID/unloads/$name/"
+prefix="$(unload_prefix "$name")"
 if (( re_unload == 0 )); then
   if aws s3 ls "$prefix" >/dev/null 2>&1; then
     echo "error: $prefix already exists. Pass --re-unload to overwrite." >&2

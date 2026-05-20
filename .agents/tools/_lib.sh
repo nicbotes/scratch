@@ -38,6 +38,25 @@ output_location() {
   printf 's3://%s/%s/' "$ROOT_ATHENA_S3_BUCKET" "$ROOT_ORG_ID"
 }
 
+# unload_prefix <name>
+# S3 prefix for an UNLOAD artefact named <name>. Derived from the workgroup's
+# enforced ResultConfiguration.OutputLocation so it lands in a path the IAM
+# identity can actually write to — different orgs use different segment
+# schemes (e.g. <bucket>/<org>/ vs <bucket>/organizations/<org>/), and UNLOAD
+# (unlike normal queries) doesn't get rewritten by the workgroup.
+unload_prefix() {
+  local name="$1"
+  require_env
+  local wg_out
+  wg_out="$(aws athena get-work-group --work-group "$ROOT_ORG_ID" \
+    --query 'WorkGroup.Configuration.ResultConfiguration.OutputLocation' \
+    --output text 2>/dev/null)"
+  if [[ -z "$wg_out" || "$wg_out" == "None" ]]; then
+    wg_out="$(output_location)"
+  fi
+  printf '%s/unloads/%s/' "${wg_out%/}" "$name"
+}
+
 # hash_id <value>
 # Deterministic short hash for committed-artefact identifiers. Used to keep
 # org_id (and similar) out of git plaintext while preserving per-org clustering

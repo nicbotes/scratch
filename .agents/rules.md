@@ -15,7 +15,8 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 6. **Views end in `_view` and encode intent by prefix.**
    - `fact_*_view`, `dim_*_view` — Kimball/star analytical layer (see `bi-view`).
    - `ops_*_view` — action-oriented operational caches (see `ops-dataset`).
-   - Don't mix. A view is for re-aggregation **or** for direct human action — never both.
+   - `scratch_<ns>_*_view` — exploratory, namespace required. The `<ns>` slug identifies the originator (analyst, branch, or example slug) so a teammate scanning `SHOW VIEWS` can tell "Nic's poke at churn" from production. Created via `save-view.sh --scratch [<ns>]`; cleaned up via `drop-view.sh`. Promote to `fact_/dim_/ops_` via `bi-view` or `ops-dataset` once intent and shape are stable.
+   - Don't mix. A view is for re-aggregation **or** for direct human action **or** still in exploration — never two at once.
 
 7. **Never embed an `AWS_*` value in a query, filename, log line, or commit.** The session trace, manifests, and feedback notes never include credentials.
 

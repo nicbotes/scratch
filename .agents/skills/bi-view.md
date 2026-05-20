@@ -43,6 +43,8 @@ You are building the analytical layer. Discipline matters here — these views g
 10. **Pin a regression golden.** When the view is stable, record at least one deterministic golden against a fixed historical window (see `regression-test`) — typically the row count or a key aggregate for a single closed quarter.
 11. Hand off to `/dev-data-adapter` for the BI-tool wiring (JDBC/ODBC). The agent framework's job ends at the modelled view.
 
+**Promoting from a `scratch_<ns>_*_view`?** Create the canonical `fact_/dim_*_view` first (running both for one snapshot is fine), confirm any consumers have switched, then `drop-view.sh scratch_<ns>_<body>_view`. Never rename in place — shared consumers may already be referencing the scratch path, and Athena view DDL isn't transactional.
+
 ## Reference
 
 Common conformed dimensions to build first:

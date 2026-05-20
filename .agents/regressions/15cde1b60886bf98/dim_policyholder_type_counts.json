@@ -1,0 +1,12 @@
+{
+  "name": "dim_policyholder_type_counts",
+  "captured_at": "2026-05-19T14:29:33Z",
+  "captured_by": "agent",
+  "org_id_hash": "15cde1b60886bf98",
+  "env": "production",
+  "sql": "SELECT policyholder_type, COUNT(*) AS n FROM dim_policyholder_view WHERE date_format(created_at, '%Y-%m-%d') >= '2015-01-01' AND date_format(created_at, '%Y-%m-%d') < '2026-01-01' GROUP BY policyholder_type ORDER BY policyholder_type",
+  "result": "\"policyholder_type\",\"n\"\n\"company\",\"5\"\n\"individual\",\"132\"",
+  "data_scanned_bytes": 16299,
+  "re_recorded": true,
+  "note": "fixed: type is a reserved word in Athena; aliased to policyholder_type in view rebuild"
+}
