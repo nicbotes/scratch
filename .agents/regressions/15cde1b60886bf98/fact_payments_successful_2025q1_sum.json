@@ -1,0 +1,12 @@
+{
+  "name": "fact_payments_successful_2025q1_sum",
+  "captured_at": "2026-05-19T14:02:12Z",
+  "captured_by": "agent",
+  "org_id_hash": "15cde1b60886bf98",
+  "env": "production",
+  "sql": "SELECT CAST(SUM(amount_cents) AS BIGINT) AS successful_amount_cents FROM fact_payments_view WHERE status = 'successful' AND date_format(created_at, '%Y-%m-%d') >= '2025-01-01' AND date_format(created_at, '%Y-%m-%d') < '2025-04-01'",
+  "result": "\"successful_amount_cents\"",
+  "data_scanned_bytes": 76661,
+  "re_recorded": false,
+  "note": ""
+}

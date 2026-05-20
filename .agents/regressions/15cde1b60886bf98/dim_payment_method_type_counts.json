@@ -1,0 +1,12 @@
+{
+  "name": "dim_payment_method_type_counts",
+  "captured_at": "2026-05-19T14:13:50Z",
+  "captured_by": "agent",
+  "org_id_hash": "15cde1b60886bf98",
+  "env": "production",
+  "sql": "SELECT payment_method_type, COUNT(*) AS n FROM dim_payment_method_view WHERE date_format(created_at, '%Y-%m-%d') >= '2010-01-01' AND date_format(created_at, '%Y-%m-%d') < '2026-01-01' GROUP BY payment_method_type ORDER BY payment_method_type",
+  "result": "\"payment_method_type\",\"n\"\n\"card\",\"5\"\n\"collection_module\",\"7\"\n\"debit_order\",\"77\"\n\"eft\",\"1\"",
+  "data_scanned_bytes": 7905,
+  "re_recorded": false,
+  "note": ""
+}

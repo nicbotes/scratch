@@ -5,6 +5,14 @@
 # Pattern: pay Athena once to pull a dataset to /tmp, then iterate over that
 # local file with DuckDB as many times as needed — each slice is instant and free.
 #
+# Why CSV-to-/tmp and not Athena UNLOAD to Parquet?
+# The Root Data Adapter IAM identity has no s3:PutObject permission (Athena
+# writes query results on behalf of the user via the service principal —
+# UNLOAD requires user-level S3 write, which isn't granted). So UNLOAD-based
+# variants of this pattern are not runnable from a Data Adapter key. The
+# athena-unload.sh / unload_prefix helpers exist for accounts that do have
+# S3 write access (e.g. internal Root infra, or a customer's own AWS).
+#
 # Usage:
 #   source .env && bash .agents/examples/policyholders-duckdb.sh
 #
@@ -88,14 +96,11 @@ bash "$AGENTS_ROOT/tools/duckdb-query.sh" "
     COUNT(*) AS n
   FROM (
     SELECT
-      DATE_DIFF('year',
-        STRPTIME(SUBSTRING(date_of_birth, 1, 10), '%Y-%m-%d'),
-        CURRENT_DATE
-      ) AS age
+      DATE_DIFF('year', CAST(date_of_birth AS DATE), CURRENT_DATE) AS age
     FROM '$OUT'
     WHERE type = 'individual'
       AND date_of_birth IS NOT NULL
-      AND date_of_birth != ''
+      AND CAST(date_of_birth AS VARCHAR) != ''
   )
   GROUP BY age_bucket
   ORDER BY

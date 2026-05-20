@@ -44,6 +44,7 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 | "Show me all data we hold on policy X / person Y" | `compliance-query` |
 | Reusable analytical layer for a BI tool / KPI dashboard | `bi-view` (Kimball: `fact_*`, `dim_*`) |
 | "The list of things ops needs to action" / flat denormalised feed | `ops-dataset` (`ops_*_view`) |
+| Working view I'm iterating on — not yet stable enough to promote | `save-view.sh --scratch [<ns>]` → `scratch_<ns>_*_view` |
 | "Across all our orgs…" | `multi-org-query` |
 | JSONB column with unknown keys (`module`, `charges`, `data`, `settings`) | `derive-jsonb-schema` |
 | "What fraction of X has feature Y?" / "Adoption of …" | `feature-adoption` |
@@ -83,7 +84,7 @@ Before publishing any number a human will act on, run `bash .agents/tools/regres
 - `tools/` — bash scripts wrapping `aws athena` / `aws s3`. Composable.
 - `references/` — schema catalog, Athena SQL gotchas, env-var setup, feedback schema, example queries.
 - `regressions/<org_id_hash>/` — committed deterministic goldens, **per-org subfolder by hash** so multiple orgs coexist without leaking raw IDs to git. See rules.md #25.
-- `bi/`, `ops/` — per-view documentation (grain, refresh, consumers).
+- `bi/`, `ops/` — per-view documentation (grain, refresh, consumers). Scratch views are intentionally undocumented — they're ephemeral; if it earns a doc page, it's ready to be promoted.
 - `proposals/` — `retro` writes patches here for human review (never edits live files).
 - `evidence/`, `sessions/`, `feedback/` — gitignored runtime artefacts.
 - `FUTURE.md` — menu of unbuilt ideas (deferred output tools, view pruning, cost baselines, sub-agents, etc.). Pull from when a real signal emerges; don't burn through top-to-bottom.

@@ -658,8 +658,10 @@ No `environment` column. Dashboard/API users — not policyholders.
 | `profile_picture_url` | varchar | |
 | `created_at` | timestamp(3) | |
 | `created_by` | varchar | |
+| `last_logged_in` | varchar | timestamp with tz stored as varchar; cast before arithmetic |
+| `password_last_changed` | varchar | timestamp with tz stored as varchar; cast before arithmetic; NULL for ~42/51 users (field newly added, backfill incomplete) |
 
-> No `password_changed_at` or MFA columns — password age and 2FA not available in the data adapter. Source from Root Dashboard → Team or Root API `/v1/users`.
+> No MFA columns — 2FA method and enforcement policy are not available in the data adapter. Source from Root Dashboard → Team or Root API `/v1/users`. `password_last_changed` and `last_logged_in` are now present but stored as varchar.
 
 ### `user_audit_logs`
 No `environment` column. Org-membership events only — not auth/security events.

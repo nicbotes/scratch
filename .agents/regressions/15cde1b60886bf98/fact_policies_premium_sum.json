@@ -1,0 +1,12 @@
+{
+  "name": "fact_policies_premium_sum",
+  "captured_at": "2026-05-19T14:24:12Z",
+  "captured_by": "agent",
+  "org_id_hash": "15cde1b60886bf98",
+  "env": "production",
+  "sql": "SELECT CAST(SUM(monthly_premium_cents) AS BIGINT) AS total_cents FROM fact_policies_view WHERE status = 'active' AND date_format(created_at, '%Y-%m-%d') >= '2020-01-01' AND date_format(created_at, '%Y-%m-%d') < '2026-01-01'",
+  "result": "\"total_cents\"\n\"32704\"",
+  "data_scanned_bytes": 30269,
+  "re_recorded": false,
+  "note": ""
+}

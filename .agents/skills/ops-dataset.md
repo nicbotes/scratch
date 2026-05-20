@@ -43,6 +43,8 @@ Operational caches are intentionally not Kimball. They're the opposite — one r
    - **Ordering contract** (what "first" means)
 9. **Optional regression golden** — pin a historical count (e.g. "ops_failed_payments_to_retry had 142 rows on 2025-03-31") if you want drift alerts; not required.
 
+**Promoting from a `scratch_<ns>_*_view`?** Create the canonical `ops_*_view` first, confirm the downstream sink (Sheets / Zapier / dashboard) is pointing at the new name, then `drop-view.sh scratch_<ns>_<body>_view`. Never rename in place — the ops consumer may be polling the scratch path on a schedule.
+
 ## Reference
 
 Examples of intent:
