@@ -9,6 +9,7 @@
 .agents/evidence/
 .agents/sessions/
 .agents/feedback/
+.agents/cross-org/
 
 # .agents/regressions/ is *committed* — see rules.md #25.
 # Identifiers are hashed (org_id → org_id_hash; query_execution_id omitted)

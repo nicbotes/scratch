@@ -57,6 +57,28 @@ unload_prefix() {
   printf '%s/unloads/%s/' "${wg_out%/}" "$name"
 }
 
+# lookup_override <map> <key>
+# Resolve a per-org override from a "k1:v1,k2:v2" map env var. Used by multi-org
+# tools to switch ROOT_ATHENA_S3_BUCKET / AWS_REGION per iteration when some
+# orgs live in a different bucket or region. Whitespace-tolerant; returns the
+# value on stdout, or non-zero if the key isn't in the map.
+lookup_override() {
+  local map="$1" key="$2"
+  [[ -z "$map" ]] && return 1
+  local pair k v
+  local -a pairs
+  IFS=',' read -ra pairs <<<"$map"
+  for pair in "${pairs[@]}"; do
+    k="$(printf '%s' "${pair%%:*}" | xargs)"
+    v="$(printf '%s' "${pair#*:}" | xargs)"
+    if [[ "$k" == "$key" ]]; then
+      printf '%s' "$v"
+      return 0
+    fi
+  done
+  return 1
+}
+
 # hash_id <value>
 # Deterministic short hash for committed-artefact identifiers. Used to keep
 # org_id (and similar) out of git plaintext while preserving per-org clustering

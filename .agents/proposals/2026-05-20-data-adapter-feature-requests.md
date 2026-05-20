@@ -1,6 +1,6 @@
 # Data Adapter feature requests — retro notes
 
-Logged 2026-05-20 from a session trying to migrate `examples/policyholders-duckdb.sh` from `athena-query.sh --to-file` CSV to Athena UNLOAD → Parquet. Two distinct platform asks surfaced. Both block real workflows that the current toolchain otherwise advertises as supported.
+Logged 2026-05-20 from a session trying to migrate `examples/policyholders-duckdb.sh` from `athena-query.sh --to-file` CSV to Athena UNLOAD → Parquet. Three distinct platform asks surfaced. Each blocks or taxes a real workflow that the current toolchain otherwise advertises as supported.
 
 ---
 
@@ -41,6 +41,41 @@ Logged 2026-05-20 from a session trying to migrate `examples/policyholders-duckd
 - If neither is feasible: a note in the Data Adapter docs alongside the OutputLocation reference, so future tool authors don't trust the value.
 
 **Where it bites in our code.** `tools/athena-query.sh:131` includes `rows=$total_rows` in the `--to-file` locator output; `total_rows` comes from `LAST_QUERY_ROWS` populated by `run_athena` in `tools/_lib.sh:138`, which reads `Statistics.OutputRows` and normalises `None → 0`. Either we patch every consumer to fall back to `wc -l` (workable but smelly), or we get an upstream fix.
+
+---
+
+## 3. Preserve column types in default query results
+
+**Ask.** Make declared column types survive Athena's default query-result CSV path — either by switching the default workgroup result format to Parquet, by emitting a sidecar schema JSON alongside the CSV, or at minimum by documenting the erasure so wrapping tooling can attach `column_types=...` hints. Today every downstream consumer must repeat `CAST(col AS <real-type>)` rituals for columns that are *already* correctly typed upstream.
+
+**Concrete example from this session.** `policyholders.date_of_birth` is declared `timestamp(3)` in the Glue catalog (`references/schema.md:84`). When `examples/policyholders-duckdb.sh` pulls it via `athena-query.sh --to-file` and queries it with DuckDB, DuckDB's CSV reader infers TIMESTAMP from the value pattern (`1995-03-12 00:00:00.000`) — well enough to break the original `SUBSTRING()/STRPTIME()` chain that assumed VARCHAR. The fix landed at `examples/policyholders-duckdb.sh:99-103`:
+
+```sql
+DATE_DIFF('year', CAST(date_of_birth AS DATE), CURRENT_DATE) AS age
+FROM '$OUT'
+WHERE type = 'individual'
+  AND date_of_birth IS NOT NULL
+  AND CAST(date_of_birth AS VARCHAR) != ''
+```
+
+Both casts disappear if the column arrives in DuckDB with its declared type.
+
+**Why this matters.** The ergonomics tax compounds. Every downstream script repeats variants of the cast; `rules.md:9` (rule #3 — "Dates are ISO 8601 strings. Wrap with `from_iso8601_timestamp(col)` before arithmetic. Do not CAST strings to dates.") is itself a workaround for type loss — and contradicts what DuckDB needs (CAST). Different consumers need different incantations for the same underlying data. Type-aware export collapses all of that.
+
+**Options for the Data Adapter team.**
+- Make Parquet the default workgroup result format. Preserves types end-to-end, no UNLOAD required, works for read-only IAM identities. Cleanest fix, biggest blast radius.
+- Emit a sidecar `<query-id>.schema.json` alongside the CSV (Athena CTAS already produces one for materialised tables). Downstream tools opt-in to read it.
+- Document the erasure explicitly so wrappers can attach `column_types=...` hints to their CSV readers.
+
+**Related: schema-declaration drift.** While auditing this, six columns surfaced that hold date/timestamp data but are declared `varchar` in the Glue catalog — they'd still need casts even *with* a typed default-result fix:
+
+- `users.date_of_birth`, `users.last_logged_in`, `users.password_last_changed` (`references/schema.md:651,661-662`; the last two already carry inline annotations like "timestamp with tz stored as varchar; cast before arithmetic").
+- `leads.identification_expiration_date`, `leads.date_of_birth` (`references/schema.md:946-947`).
+- `members.date_of_birth` (`references/schema.md:193`).
+
+Contrast `policyholders.identification_expiration_date` at `references/schema.md:88`, which IS declared `timestamp(3)` — so the catalog already has the right precedent; the varchar declarations on the other six are a drift to clean up, not a redesign. A smaller, independent ask the Data Adapter team can land without coordinating workgroup config changes.
+
+**Cross-reference.** This ask partially overlaps with #1 (s3:PutObject). Granting s3:PutObject unlocks Athena UNLOAD-to-Parquet which preserves types — solving the cast problem for accounts that *write* their outputs. A typed default result remains the only path for *read-only* Data Adapter users (the common case). The two asks are complementary, not duplicates.
 
 ---
 

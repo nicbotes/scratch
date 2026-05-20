@@ -17,6 +17,8 @@ You are operating the Root Data Adapter via AWS CLI. This framework gives you ev
 | `ROOT_ATHENA_S3_BUCKET` | yes | Bucket where Athena results land (output = `s3://$BUCKET/$ROOT_ORG_ID/`) |
 | `ROOT_ENV` | no (default `production`) | `production` or `sandbox` — used in every `WHERE` filter |
 | `ROOT_ORG_IDS` | no | Comma-separated list for multi-org fan-out |
+| `ROOT_ATHENA_S3_BUCKET_BY_ORG` | no | `uuid:bucket,uuid:bucket` overrides for orgs whose S3 output bucket differs from the default. Consulted by `cross-org-pull.sh` per iteration |
+| `AWS_REGION_BY_ORG` | no | `uuid:region,uuid:region` overrides for orgs in a different region. Same shape and use as the bucket map |
 | `ROOT_AGENTS_DEBUG` | no | `1` = verbose tool output to stderr |
 | `ROOT_AGENTS_SESSION_ID` | no | Namespace for session traces & feedback |
 | `ROOT_API_KEY` | no (`root-api.sh` only) | Root Dashboard API key. Falls back to `.root-auth`. Used for module-schema lookups; independent of AWS |
@@ -45,7 +47,8 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 | Reusable analytical layer for a BI tool / KPI dashboard | `bi-view` (Kimball: `fact_*`, `dim_*`) |
 | "The list of things ops needs to action" / flat denormalised feed | `ops-dataset` (`ops_*_view`) |
 | Working view I'm iterating on — not yet stable enough to promote | `save-view.sh --scratch [<ns>]` → `scratch_<ns>_*_view` |
-| "Across all our orgs…" | `multi-org-query` |
+| "Across all our orgs…" — one-shot, concatenated CSV | `multi-org-query` |
+| "System-wide / internal insights" — iterate the cross-org dataset locally | `cross-org-explore` |
 | JSONB column with unknown keys (`module`, `charges`, `data`, `settings`) | `derive-jsonb-schema` |
 | "What fraction of X has feature Y?" / "Adoption of …" | `feature-adoption` |
 | Analytical question on a big dataset (answer is a summary, not the rows) | `pre-aggregate` |

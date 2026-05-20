@@ -17,7 +17,9 @@ Every tool under `.agents/tools/` reads these. They are the only way credentials
 | Var | Default | Purpose |
 |---|---|---|
 | `ROOT_ENV` | `production` | Used in every `WHERE environment = '...'` filter |
-| `ROOT_ORG_IDS` | unset | Comma-separated list for `multi-org-query` |
+| `ROOT_ORG_IDS` | unset | Comma-separated list for `multi-org-query` / `cross-org-explore` |
+| `ROOT_ATHENA_S3_BUCKET_BY_ORG` | unset | `uuid:bucket,uuid:bucket` overrides. Consulted by `cross-org-pull.sh` per iteration when an org's S3 output bucket differs from `ROOT_ATHENA_S3_BUCKET`. Orgs not in the map fall back to the default |
+| `AWS_REGION_BY_ORG` | unset | `uuid:region,uuid:region` overrides. Same shape and use as the bucket map, for orgs in a different region than `AWS_REGION` |
 | `ROOT_AGENTS_DEBUG` | `0` | `1` prints resolved `aws athena` commands, scanned bytes, and query ids to stderr |
 | `ROOT_AGENTS_SESSION_ID` | UTC date | Namespace for `.agents/sessions/<id>.jsonl` and `.agents/feedback/<id>.jsonl` |
 | `ROOT_API_KEY` | from `.root-auth` if present | Root Dashboard API key. Used by `root-api.sh` for fetching module schemas etc. **Independent of AWS creds** — a different surface |
@@ -55,6 +57,19 @@ bash .agents/tools/list-orgs.sh   # confirms what's actually accessible
 ```
 
 To switch the active org in-session, just `export ROOT_ORG_ID=<id>` again — every subsequent tool call picks it up.
+
+### Orgs on different buckets or regions
+
+Most multi-org setups share one bucket and one region across all orgs in `ROOT_ORG_IDS`. When that doesn't hold — e.g. one org's data adapter was provisioned against a different S3 bucket — supply override maps so `cross-org-pull.sh` can switch destination per iteration:
+
+```bash
+export ROOT_ATHENA_S3_BUCKET="bucket-default"   # used for orgs NOT in the map
+export AWS_REGION="eu-west-1"                   # ditto
+export ROOT_ATHENA_S3_BUCKET_BY_ORG="<uuid-x>:bucket-other"
+export AWS_REGION_BY_ORG="<uuid-x>:us-east-1"   # only set if region also differs
+```
+
+The single multi-org access key handles auth across all orgs; the maps only switch the per-org destination values that the Athena workgroup expects. Orgs not in a map fall back to the default env var.
 
 ## Security notes
 
