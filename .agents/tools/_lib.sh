@@ -402,14 +402,36 @@ pii_required_or_fail() {
       echo "Touched: $summary" >&2
       exit 64
     fi
-    _session_log_extra "$tool" "pii_required=true" "reason=\"$(printf '%s' "$reason" | sed 's/"/\\"/g')\""
+    local p r j jp esc_reason
+    p="$(echo "$scan"  | grep -oE 'pii=[^ ]*'             | cut -d= -f2-)"
+    r="$(echo "$scan"  | grep -oE 'restricted=[^ ]*'      | cut -d= -f2-)"
+    j="$(echo "$scan"  | grep -oE 'json_sensitive=[^ ]*'  | cut -d= -f2-)"
+    jp="$(echo "$scan" | grep -oE 'json_paths=[^ ]*'      | cut -d= -f2-)"
+    esc_reason="$(printf '%s' "$reason" | sed 's/"/\\"/g')"
+    _session_log_extra "$tool" \
+      "pii_required=true" \
+      "reason=\"$esc_reason\"" \
+      "touched_pii=\"$p\"" \
+      "touched_restricted=\"$r\"" \
+      "touched_json_sensitive=\"$j\"" \
+      "touched_json_paths=\"$jp\""
     return 0
   fi
 
   # No override and the query is sensitive.
   if [[ "$mode" == "standard" ]] && (( override_ok == 1 )); then
-    # standard + --to-file is acceptable; log it.
-    _session_log_extra "$tool" "pii_to_file=true"
+    # standard + --to-file is acceptable; log it (with touched columns).
+    local p r j jp
+    p="$(echo "$scan"  | grep -oE 'pii=[^ ]*'             | cut -d= -f2-)"
+    r="$(echo "$scan"  | grep -oE 'restricted=[^ ]*'      | cut -d= -f2-)"
+    j="$(echo "$scan"  | grep -oE 'json_sensitive=[^ ]*'  | cut -d= -f2-)"
+    jp="$(echo "$scan" | grep -oE 'json_paths=[^ ]*'      | cut -d= -f2-)"
+    _session_log_extra "$tool" \
+      "pii_to_file=true" \
+      "touched_pii=\"$p\"" \
+      "touched_restricted=\"$r\"" \
+      "touched_json_sensitive=\"$j\"" \
+      "touched_json_paths=\"$jp\""
     return 0
   fi
 
@@ -580,12 +602,27 @@ pii_required_or_fail_inline() {
       echo "Touched: $summary" >&2
       exit 64
     fi
-    _session_log_extra "$tool" "pii_required=true" "inline_check=true" "reason=\"$(printf '%s' "$reason" | sed 's/"/\\"/g')\""
+    local esc_reason
+    esc_reason="$(printf '%s' "$reason" | sed 's/"/\\"/g')"
+    _session_log_extra "$tool" \
+      "pii_required=true" \
+      "inline_check=true" \
+      "reason=\"$esc_reason\"" \
+      "touched_pii=\"$exec_pii\"" \
+      "touched_restricted=\"$exec_restricted\"" \
+      "touched_json_sensitive=\"$exec_json_sens\"" \
+      "touched_json_paths=\"$sql_json_paths\""
     return 0
   fi
 
   if [[ "$mode" == "standard" ]] && (( override_ok == 1 )); then
-    _session_log_extra "$tool" "pii_to_file=true" "inline_check=true"
+    _session_log_extra "$tool" \
+      "pii_to_file=true" \
+      "inline_check=true" \
+      "touched_pii=\"$exec_pii\"" \
+      "touched_restricted=\"$exec_restricted\"" \
+      "touched_json_sensitive=\"$exec_json_sens\"" \
+      "touched_json_paths=\"$sql_json_paths\""
     return 0
   fi
 
