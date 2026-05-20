@@ -174,6 +174,27 @@ GROUP BY 1
 ORDER BY 1;
 ```
 
+## DuckDB on Athena CSV: dates auto-infer to TIMESTAMP
+
+DuckDB's CSV reader inspects the first N rows and types ISO-shaped date columns as `TIMESTAMP`, not `VARCHAR`. Functions written assuming string input then fail:
+
+```sql
+-- ✗ Fails: SUBSTRING / STRPTIME expect VARCHAR
+SELECT STRPTIME(SUBSTRING(created_at, 1, 10), '%Y-%m-%d') AS d
+FROM read_csv_auto('/tmp/policies.csv');
+-- Binder Error: No function matches the given name and argument types 'substring(TIMESTAMP, ...)'
+
+-- ✓ Works: cast the inferred TIMESTAMP to DATE
+SELECT CAST(created_at AS DATE) AS d
+FROM read_csv_auto('/tmp/policies.csv');
+
+-- ✓ Also works: bypass type inference, read as string, then parse
+SELECT STRPTIME(SUBSTRING(created_at, 1, 10), '%Y-%m-%d') AS d
+FROM read_csv_auto('/tmp/policies.csv', types={'created_at': 'VARCHAR'});
+```
+
+The first form is the right move 95% of the time — DuckDB inferred the type correctly; lean on it. The `types={...}` override exists for the edge case where the CSV column is intentionally non-ISO and you need to control parsing yourself. Affects `skills/pre-aggregate.md` worked examples and `examples/policyholders-duckdb.sh`.
+
 ## Pre-aggregate on Parquet (the pull-once-slice-many pattern)
 
 Pay Athena once to produce a typed Parquet file. Slice it locally with DuckDB as many times as the question needs — no extra scan cost.

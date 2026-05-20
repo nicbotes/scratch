@@ -6,17 +6,35 @@ You are operating the Root Data Adapter via AWS CLI. This framework gives you ev
 
 ## Prerequisites
 
-`aws` CLI on `$PATH` (v2). Credentials and connection details come from Root Dashboard → Data Management → Data Adapter → Generate Access Key.
+Two binaries on `$PATH`:
+
+- `aws` CLI v2 — Athena queries (`brew install awscli`)
+- `duckdb` — local pre-aggregation (`brew install duckdb`); required by `tools/duckdb-query.sh` and rules.md #24
+
+Credentials and connection details come from Root Dashboard → Data Management → Data Adapter → Generate Access Key.
+
+### Fastest setup
+
+```bash
+cp .agents/.env.example .agents/.env   # template is committed
+# edit .agents/.env with the four values from the Generate Access Key modal
+source .agents/.env
+bash .agents/tools/whoami.sh           # confirms the org you're now in
+```
+
+`.env` is gitignored alongside `.root-auth`. Sourcing it once per shell beats re-exporting every session.
 
 | Env var | Required | Purpose |
 |---|---|---|
 | `AWS_ACCESS_KEY_ID` | yes | AWS auth |
 | `AWS_SECRET_ACCESS_KEY` | yes | AWS auth |
-| `AWS_REGION` | yes | Region the org's Athena lives in |
+| `AWS_REGION` | no (auto-detected) | Region the org's Athena lives in. Inferred from `ROOT_ATHENA_S3_BUCKET` via `aws s3api get-bucket-location`. Export only to override. |
 | `ROOT_ORG_ID` | yes | Active org — used as workgroup, database/schema, and S3 prefix |
 | `ROOT_ATHENA_S3_BUCKET` | yes | Bucket where Athena results land (output = `s3://$BUCKET/$ROOT_ORG_ID/`) |
 | `ROOT_ENV` | no (default `production`) | `production` or `sandbox` — used in every `WHERE` filter |
 | `ROOT_ORG_IDS` | no | Comma-separated list for multi-org fan-out |
+| `ROOT_ATHENA_S3_BUCKET_BY_ORG` | no | `uuid:bucket,uuid:bucket` overrides for orgs whose S3 output bucket differs from the default. Consulted by `cross-org-pull.sh` per iteration |
+| `AWS_REGION_BY_ORG` | no | `uuid:region,uuid:region` overrides — rarely needed since AWS_REGION auto-detects from the per-org bucket. Only set when an org's region differs without a corresponding bucket override |
 | `ROOT_AGENTS_DEBUG` | no | `1` = verbose tool output to stderr |
 | `ROOT_AGENTS_SESSION_ID` | no | Namespace for session traces & feedback |
 | `ROOT_API_KEY` | no (`root-api.sh` only) | Root Dashboard API key. Falls back to `.root-auth`. Used for module-schema lookups; independent of AWS |
@@ -33,6 +51,14 @@ bash .agents/tools/profile-table.sh policies # row count, freshness, null rates
 bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environment='production'"
 ```
 
+**First-time / new credentials.** If you've just been issued a multi-org-scoped AWS key and don't yet know which orgs it can reach, run `discover-orgs.sh` to probe Athena workgroups across regions and emit a ready-to-paste `.env` block:
+
+```bash
+AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... \
+  bash .agents/tools/discover-orgs.sh > .env.suggested
+diff -u .agents/.env .env.suggested   # review before swapping
+```
+
 ## Decision tree — pick a skill from intent
 
 | User intent | Skill |
@@ -45,7 +71,8 @@ bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environm
 | Reusable analytical layer for a BI tool / KPI dashboard | `bi-view` (Kimball: `fact_*`, `dim_*`) |
 | "The list of things ops needs to action" / flat denormalised feed | `ops-dataset` (`ops_*_view`) |
 | Working view I'm iterating on — not yet stable enough to promote | `save-view.sh --scratch [<ns>]` → `scratch_<ns>_*_view` |
-| "Across all our orgs…" | `multi-org-query` |
+| "Across all our orgs…" — one-shot, concatenated CSV | `multi-org-query` |
+| "System-wide / internal insights" — iterate the cross-org dataset locally | `cross-org-explore` |
 | JSONB column with unknown keys (`module`, `charges`, `data`, `settings`) | `derive-jsonb-schema` |
 | "What fraction of X has feature Y?" / "Adoption of …" | `feature-adoption` |
 | Analytical question on a big dataset (answer is a summary, not the rows) | `pre-aggregate` |

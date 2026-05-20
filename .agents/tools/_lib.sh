@@ -20,6 +20,22 @@ _debug() {
 }
 
 require_env() {
+  # Auto-detect AWS_REGION from the bucket when unset. Keeps the dashboard
+  # setup at four values (key id, secret, org id, bucket) instead of five.
+  # Each fresh shell pays one S3 call (~50ms); subsequent calls reuse the export.
+  if [[ -z "${AWS_REGION:-}" && -n "${ROOT_ATHENA_S3_BUCKET:-}" \
+        && -n "${AWS_ACCESS_KEY_ID:-}" && -n "${AWS_SECRET_ACCESS_KEY:-}" ]]; then
+    local detected
+    detected="$(aws s3api get-bucket-location --bucket "$ROOT_ATHENA_S3_BUCKET" \
+      --query 'LocationConstraint' --output text 2>/dev/null || true)"
+    # us-east-1 returns "None" (legacy AWS quirk); also normalise empty.
+    if [[ -z "$detected" || "$detected" == "None" ]]; then
+      detected="us-east-1"
+    fi
+    export AWS_REGION="$detected"
+    _debug "auto-detected AWS_REGION=$AWS_REGION from $ROOT_ATHENA_S3_BUCKET"
+  fi
+
   local missing=()
   for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION ROOT_ORG_ID ROOT_ATHENA_S3_BUCKET; do
     if [[ -z "${!v:-}" ]]; then
@@ -55,6 +71,28 @@ unload_prefix() {
     wg_out="$(output_location)"
   fi
   printf '%s/unloads/%s/' "${wg_out%/}" "$name"
+}
+
+# lookup_override <map> <key>
+# Resolve a per-org override from a "k1:v1,k2:v2" map env var. Used by multi-org
+# tools to switch ROOT_ATHENA_S3_BUCKET / AWS_REGION per iteration when some
+# orgs live in a different bucket or region. Whitespace-tolerant; returns the
+# value on stdout, or non-zero if the key isn't in the map.
+lookup_override() {
+  local map="$1" key="$2"
+  [[ -z "$map" ]] && return 1
+  local pair k v
+  local -a pairs
+  IFS=',' read -ra pairs <<<"$map"
+  for pair in "${pairs[@]}"; do
+    k="$(printf '%s' "${pair%%:*}" | xargs)"
+    v="$(printf '%s' "${pair#*:}" | xargs)"
+    if [[ "$k" == "$key" ]]; then
+      printf '%s' "$v"
+      return 0
+    fi
+  done
+  return 1
 }
 
 # hash_id <value>
@@ -116,6 +154,16 @@ run_athena() {
     --query-execution-context "Database=$ROOT_ORG_ID" \
     --result-configuration "OutputLocation=$(output_location)" \
     --output text --query 'QueryExecutionId')"
+
+  # Fail-fast on empty/None qid. Command substitution doesn't trip `set -e`,
+  # so a SQL syntax error (or unauthorised workgroup) silently produces an
+  # empty qid and the polling loop below would otherwise call
+  # get-query-execution with --query-execution-id "" forever.
+  if [[ -z "$qid" || "$qid" == "None" ]]; then
+    echo "athena start-query-execution returned no QueryExecutionId — usually a SQL syntax error or unauthorised database/workgroup" >&2
+    _session_log "run_athena" "false" "0" "0"
+    return 1
+  fi
 
   _debug "query execution id: $qid"
 

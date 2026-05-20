@@ -1,0 +1,20 @@
+# Org-to-bucket mapping for `discover-orgs.sh --from-csv`.
+#
+# Maintain this file (or any CSV in the same shape) when you already know
+# which orgs your IAM principal can reach and don't want to probe Athena —
+# faster, no AWS calls, no IAM read perms needed.
+#
+# Copy to a real path (gitignored: .agents/orgs.csv) and edit:
+#   cp .agents/orgs.csv.example .agents/orgs.csv
+#   $EDITOR .agents/orgs.csv
+#   bash .agents/tools/discover-orgs.sh --from-csv .agents/orgs.csv > .env.suggested
+#
+# Format: comma-separated, header row optional, lines starting with `#` ignored.
+#   Columns: org_id, bucket, name (3rd column is informational, not emitted).
+#
+# Region is auto-detected from each bucket via `aws s3api get-bucket-location`;
+# don't add a region column — it's not needed.
+
+org_id,bucket,name
+00000000-0000-0000-0000-000000000001,root-data-adapter-production,Example Production Org
+00000000-0000-0000-0000-000000000002,root-data-adapter-clientname,Example Client-Specific Org

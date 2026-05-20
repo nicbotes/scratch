@@ -6,7 +6,11 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 
 2. **Money is cents.** `monthly_premium`, `sum_assured`, `amount`, anything currency-shaped — integer cents. Divide by 100 **only at display time**, never inside `SUM`/`AVG`/`GROUP BY`.
 
-3. **Dates are ISO 8601 strings.** Wrap with `from_iso8601_timestamp(col)` before any arithmetic, comparison, or `AT TIME ZONE`. Do not `CAST` strings to dates.
+3. **Date handling is type-directional.** Two patterns, depending on the column type:
+   - **Varchar columns** (most `*_at` historical fields, all `policies.start_date`/`end_date`) store ISO 8601 strings. Wrap with `from_iso8601_timestamp(col)` before arithmetic, comparison, or `AT TIME ZONE`. Do not `CAST` strings to dates.
+   - **`timestamp(3)` columns** (most `created_at`, `updated_at`) are already typed — comparing them against a bare string literal fails with `TYPE_MISMATCH`. Either compare against another timestamp (`from_iso8601_timestamp('2025-01-01')`) or coerce to string with `date_format(col, '%Y-%m-%d') >= '2025-01-01'`. The `date_format` form is the standard pattern for string-comparable date filtering in regression goldens.
+
+   Check the column type in `references/schema.md` or via `glue-describe.sh <table>` before writing the predicate.
 
 4. **Snapshots are daily.** Data refreshes shortly after midnight in the org's region. State this in every report. Never claim "real-time".
 
@@ -26,7 +30,7 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 
 10. **Profile before you analyse.** Run `profile-table.sh` on every table that contributes to a published number. The profile output is required context, not a nice-to-have.
 
-11. **Compliance output is evidence.** Always route through `export-results.sh` so every CSV has a sibling `manifest.json` (org id, env, sql, query id, sha256, row count).
+11. **Named-consumer output is evidence.** Always route through `export-results.sh` so every CSV has a sibling `manifest.json` (org id, env, sql, query id, sha256, row count). "Named consumer" means: a report, a shared document, a human who will act on the number, a downstream pipeline, or anything the agent will reference back to itself in a later turn. Default posture: **if you ran more than one query to produce an answer, write the evidence before presenting findings.** Stdout-only is fine for one-shot lookups; for assembled analyses it loses the audit trail and forces a re-run when the result needs to be shared. Compliance evidence is the strict case — never exempt. For analytical reports the rule is "do this by default; exemption requires a one-line reason in the reply".
 
 12. **Observe friction in real time.** If a skill description didn't match, a reference was re-read, a tool flag was missing, or a gotcha tripped you — call `feedback-note.sh` **before** moving on. One note per event.
 
@@ -35,6 +39,8 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 14. **Check your work against goldens.** Before publishing any analytical number — KPI, board figure, regulator-facing total — run `regression-check.sh --all` (cheap) or at minimum the goldens covering the same domain. A red golden is stop-the-line, not retry-the-query.
 
 15. **Goldens are time-bounded and aggregate-shaped.** Every regression file pins a closed historical window (`>=` and `<` both present, or `BETWEEN`). Never `NOW()`, `CURRENT_DATE`, or "active today" — those drift legitimately and produce noise. Golden SQL produces aggregates (counts, sums, percentiles, group-bys) so the committed `result` field is innocuous — row-level captures belong in `export-results.sh` evidence (`.agents/evidence/`, gitignored), **never** in regressions.
+
+    Standard pattern for an all-history golden: `WHERE date_format(created_at, '%Y-%m-%d') >= '2010-01-01' AND date_format(created_at, '%Y-%m-%d') < '<next-year>'`. The validator in `regression-record.sh` rejects single-bound windows; this is intentional, not a bug.
 
 16. **Compliance is per-org-per-subject.** `multi-org-query` is for analytics that aggregates across orgs. Never fan compliance queries across orgs in one go — the evidence package must be unambiguous about which org the data came from.
 

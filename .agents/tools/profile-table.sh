@@ -19,6 +19,25 @@ if [[ -z "$table" ]]; then
   exit 64
 fi
 
+# Columns + env-column probe via the Glue metastore — no Athena query, no
+# bytes scanned, no DESCRIBE quoting quirks. Some tables (users, organizations,
+# api_keys, ...) have no `environment` column; adding the predicate
+# unconditionally would COLUMN_NOT_FOUND.
+columns="$(bash "$(dirname "$0")/glue-describe.sh" --columns "$table")"
+
+has_env_column=0
+if bash "$(dirname "$0")/glue-describe.sh" --has-column "$table" environment; then
+  has_env_column=1
+fi
+
+env_predicate=""
+env_note="env=$ROOT_ENV"
+if (( has_env_column )); then
+  env_predicate="WHERE environment = '$ROOT_ENV'"
+else
+  env_note="env=N/A (no environment column — org-level or platform table)"
+fi
+
 # Total + freshness
 qid="$(run_athena "
 SELECT
@@ -26,15 +45,11 @@ SELECT
   MAX(created_at) AS max_created_at,
   MIN(created_at) AS min_created_at
 FROM \"$table\"
-WHERE environment = '$ROOT_ENV'
+$env_predicate
 ")"
 summary="$(fetch_results "$qid")"
 
-# Columns
-qid="$(run_athena "DESCRIBE \"$table\"")"
-columns="$(fetch_results "$qid")"
-
-echo "=== profile: $table (env=$ROOT_ENV, org=$ROOT_ORG_ID) ==="
+echo "=== profile: $table ($env_note, org=$ROOT_ORG_ID) ==="
 echo
 echo "-- summary --"
 echo "$summary"
@@ -42,7 +57,12 @@ echo
 echo "-- columns --"
 echo "$columns"
 echo
-echo "Note: snapshots refresh daily. Freshness is max(created_at) above."
+if (( has_env_column )); then
+  echo "Note: snapshots refresh daily. Freshness is max(created_at) above."
+else
+  echo "Note: this table has no environment column — row count is unfiltered (both"
+  echo "production and sandbox if present). Snapshots refresh daily."
+fi
 echo "For per-column null rates and distinct counts, run targeted queries"
 echo "via athena-query.sh against the columns you care about — generic"
 echo "null-rate scans are partition-expensive."

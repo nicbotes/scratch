@@ -128,7 +128,20 @@ if [[ -n "$to_file" ]]; then
   formatted="$(format_csv "$format" "$csv")"
   printf '%s\n' "$formatted" > "$to_file"
   bytes="$(wc -c < "$to_file" | tr -d ' ')"
-  echo "$to_file rows=$total_rows bytes=$bytes s3_uri=$s3_uri"
+
+  # Fallback row count: Athena's Statistics.OutputRows is null for queries whose
+  # results are downloaded as CSV directly from S3 (not paginated via
+  # GetQueryResults), so total_rows lies as 0 on non-empty files. Count the file
+  # locally when that happens. Upstream fix tracked in
+  # proposals/2026-05-20-data-adapter-feature-requests.md item #2; remove this
+  # block once Statistics surfaces accurate counts.
+  rows="$total_rows"
+  if (( rows == 0 )) && (( bytes > 0 )) && [[ "$format" != "json" ]]; then
+    file_lines="$(wc -l < "$to_file" | tr -d ' ')"
+    (( file_lines > 0 )) && rows=$(( file_lines - 1 ))
+  fi
+
+  echo "$to_file rows=$rows bytes=$bytes s3_uri=$s3_uri"
   exit 0
 fi
 
