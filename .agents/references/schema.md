@@ -663,6 +663,16 @@ No `environment` column. Dashboard/API users — not policyholders.
 
 > No MFA columns — 2FA method and enforcement policy are not available in the data adapter. Source from Root Dashboard → Team or Root API `/v1/users`. `password_last_changed` and `last_logged_in` are now present but stored as varchar.
 
+**Aliases / lookup helper.** If you're hunting for one of these and grep fails:
+
+| You searched for | Actual column / source |
+|---|---|
+| `password_changed_at` | `password_last_changed` (varchar; cast before arithmetic) |
+| `last_login_at`, `last_login` | `last_logged_in` (varchar) |
+| `mfa_enabled`, `mfa_method`, `2fa_*` | Not in data adapter. Root API `/v1/users` |
+| `password_strength`, `password_age_days` | Derive client-side from `password_last_changed`; raw strength signals not stored |
+| `failed_login_count` | `login_attempts` (integer) |
+
 ### `user_audit_logs`
 No `environment` column. Org-membership events only — not auth/security events.
 
