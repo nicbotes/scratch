@@ -1,6 +1,7 @@
 # Root Platform secrets — never commit
 .root-auth
 .env
+.agents/orgs.csv
 
 # Claude Code runtime artefacts
 .claude/worktrees/
@@ -10,7 +11,7 @@
 .agents/sessions/
 .agents/feedback/
 .agents/cross-org/
-
+.agents/.claude
 # .agents/regressions/ is *committed* — see rules.md #25.
 # Identifiers are hashed (org_id → org_id_hash; query_execution_id omitted)
 # so per-org goldens coexist without leaking raw org IDs to git.

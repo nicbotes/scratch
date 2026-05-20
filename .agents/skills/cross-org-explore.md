@@ -31,22 +31,20 @@ Sibling to `pre-aggregate` (rules #23/#24): pull once, slice many. The only diff
 
 ## Steps
 
-1. **Confirm `ROOT_ORG_IDS` is set** to the orgs in scope. If not, run `list-orgs.sh` to discover what your credentials can see, then export:
+1. **Confirm `ROOT_ORG_IDS` is set** to the orgs in scope. First-time setup: run `discover-orgs.sh` to probe Athena workgroups across regions and emit a ready-to-paste `.env`:
+   ```bash
+   AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... \
+     bash .agents/tools/discover-orgs.sh > .env.suggested
+   ```
+   The output already includes `ROOT_ORG_IDS`, the majority `ROOT_ATHENA_S3_BUCKET`, and the `ROOT_ATHENA_S3_BUCKET_BY_ORG` override map for orgs on a different bucket. `AWS_REGION` is auto-detected from the per-org bucket via `aws s3api get-bucket-location`, so you usually don't set it manually — and `AWS_REGION_BY_ORG` is only needed in the unusual case of region-without-bucket divergence.
+
+   If you already know which orgs are in scope, just export directly:
    ```bash
    export ROOT_ORG_IDS="<uuid-1>,<uuid-2>,..."
-   ```
-
-   **If some orgs live in a different S3 bucket or region than your default**, add an override map for each axis that differs. The tool consults these per iteration and falls back to the default when an org isn't in the map:
-   ```bash
-   # default bucket/region cover most orgs
    export ROOT_ATHENA_S3_BUCKET="bucket-default"
-   export AWS_REGION="eu-west-1"
-   # one (or a few) orgs on a different bucket
-   export ROOT_ATHENA_S3_BUCKET_BY_ORG="<uuid-x>:bucket-other,<uuid-y>:bucket-third"
-   # only set this if some orgs are in a different region too
-   export AWS_REGION_BY_ORG="<uuid-x>:us-east-1"
+   export ROOT_ATHENA_S3_BUCKET_BY_ORG="<uuid-x>:bucket-other"   # only the exceptions
    ```
-   The single multi-org-scoped AWS access key handles auth across all orgs; the maps only switch *destination* values that the Athena workgroup expects per org.
+   The single multi-org-scoped AWS access key handles auth across all orgs; the override map only switches destination buckets for orgs that need it.
 
 2. **Decide on the per-org view or inline SQL.** Cross-org work requires identical schema in each org. Options:
    - A standing `fact_*_view` / `dim_*_view` that already exists in every org's workgroup (use `--view <name>`).

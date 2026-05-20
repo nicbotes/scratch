@@ -34,7 +34,7 @@ bash .agents/tools/whoami.sh           # confirms the org you're now in
 | `ROOT_ENV` | no (default `production`) | `production` or `sandbox` — used in every `WHERE` filter |
 | `ROOT_ORG_IDS` | no | Comma-separated list for multi-org fan-out |
 | `ROOT_ATHENA_S3_BUCKET_BY_ORG` | no | `uuid:bucket,uuid:bucket` overrides for orgs whose S3 output bucket differs from the default. Consulted by `cross-org-pull.sh` per iteration |
-| `AWS_REGION_BY_ORG` | no | `uuid:region,uuid:region` overrides for orgs in a different region. Same shape and use as the bucket map |
+| `AWS_REGION_BY_ORG` | no | `uuid:region,uuid:region` overrides — rarely needed since AWS_REGION auto-detects from the per-org bucket. Only set when an org's region differs without a corresponding bucket override |
 | `ROOT_AGENTS_DEBUG` | no | `1` = verbose tool output to stderr |
 | `ROOT_AGENTS_SESSION_ID` | no | Namespace for session traces & feedback |
 | `ROOT_API_KEY` | no (`root-api.sh` only) | Root Dashboard API key. Falls back to `.root-auth`. Used for module-schema lookups; independent of AWS |
@@ -49,6 +49,14 @@ bash .agents/tools/whoami.sh                 # confirm which org you're in
 bash .agents/tools/athena-describe.sh        # SHOW TABLES
 bash .agents/tools/profile-table.sh policies # row count, freshness, null rates
 bash .agents/tools/athena-query.sh "SELECT COUNT(*) FROM policies WHERE environment='production'"
+```
+
+**First-time / new credentials.** If you've just been issued a multi-org-scoped AWS key and don't yet know which orgs it can reach, run `discover-orgs.sh` to probe Athena workgroups across regions and emit a ready-to-paste `.env` block:
+
+```bash
+AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... \
+  bash .agents/tools/discover-orgs.sh > .env.suggested
+diff -u .agents/.env .env.suggested   # review before swapping
 ```
 
 ## Decision tree — pick a skill from intent

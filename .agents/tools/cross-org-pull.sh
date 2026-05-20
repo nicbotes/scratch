@@ -91,8 +91,10 @@ fi
 
 # Pre-flight: check the non-per-org env vars once so we fail fast with a single
 # clear message rather than emitting an identical require_env error per org.
+# AWS_REGION is intentionally omitted — _lib.sh:require_env auto-detects it
+# from the (per-org) bucket via aws s3api get-bucket-location.
 missing_env=()
-for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION ROOT_ATHENA_S3_BUCKET; do
+for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY ROOT_ATHENA_S3_BUCKET; do
   [[ -z "${!v:-}" ]] && missing_env+=("$v")
 done
 if (( ${#missing_env[@]} )); then
@@ -132,6 +134,7 @@ restore_env() {
   [[ -n "$original_org_id" ]] && export ROOT_ORG_ID="$original_org_id"
   [[ -n "$original_bucket" ]] && export ROOT_ATHENA_S3_BUCKET="$original_bucket"
   [[ -n "$original_region" ]] && export AWS_REGION="$original_region"
+  return 0   # don't let an empty original_* leak a non-zero exit via the EXIT trap
 }
 trap restore_env EXIT
 
@@ -152,9 +155,12 @@ for raw_org in "${orgs[@]}"; do
 
   export ROOT_ORG_ID="$org"
 
-  # Per-org overrides for bucket and region. Some orgs live in a different
-  # S3 bucket (or region) than the default; ROOT_ATHENA_S3_BUCKET_BY_ORG and
-  # AWS_REGION_BY_ORG carry "uuid:value,uuid:value" maps consulted here.
+  # Per-org overrides for bucket and (rarely) region. Some orgs live in a
+  # different S3 bucket than the default; ROOT_ATHENA_S3_BUCKET_BY_ORG carries
+  # a "uuid:bucket,uuid:bucket" map consulted here. Region usually follows
+  # the bucket automatically — _lib.sh:require_env auto-detects AWS_REGION
+  # from the bucket's location when AWS_REGION is unset, so we unset it
+  # between iterations to let that detection re-fire for the new bucket.
   if bucket_override="$(lookup_override "${ROOT_ATHENA_S3_BUCKET_BY_ORG:-}" "$org")"; then
     export ROOT_ATHENA_S3_BUCKET="$bucket_override"
   else
@@ -162,8 +168,10 @@ for raw_org in "${orgs[@]}"; do
   fi
   if region_override="$(lookup_override "${AWS_REGION_BY_ORG:-}" "$org")"; then
     export AWS_REGION="$region_override"
-  else
+  elif [[ -n "$original_region" ]]; then
     export AWS_REGION="$original_region"
+  else
+    unset AWS_REGION
   fi
 
   org_name=""
