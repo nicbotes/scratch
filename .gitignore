@@ -8,6 +8,7 @@
 
 # Agent framework runtime artefacts (see .agents/AGENTS.md)
 .agents/evidence/
+.agents/sensitive/
 .agents/sessions/
 .agents/feedback/
 .agents/cross-org/

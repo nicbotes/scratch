@@ -16,6 +16,8 @@ format="parquet"
 compression="snappy"
 partition_by=""
 re_unload=0
+pii_required=0
+reason=""
 positional=()
 
 while (( $# )); do
@@ -24,6 +26,8 @@ while (( $# )); do
     --compression)   compression="$2";  shift 2 ;;
     --partition-by)  partition_by="$2"; shift 2 ;;
     --re-unload)     re_unload=1;       shift ;;
+    --pii-required)  pii_required=1;    shift ;;
+    --reason)        reason="$2";       shift 2 ;;
     -*) echo "unknown flag: $1" >&2; exit 64 ;;
     *) positional+=("$1"); shift ;;
   esac
@@ -62,10 +66,22 @@ if grep -Eqi '\b(CREATE|DROP|ALTER|INSERT|DELETE|UPDATE|GRANT|REVOKE|TRUNCATE)\b
   exit 64
 fi
 
+# PII firewall — rule #26. UNLOAD lands in S3 (not stdout), so this is
+# write-with-explicit-acknowledgement rather than write-to-context. We still
+# require --pii-required so the agent thinks twice before producing typed
+# Parquet exports of PII at scale. Sensitive UNLOADs route to a separate
+# 'sensitive/' subprefix for tighter S3 policy scoping.
+pii_required_or_fail "$sql" "$pii_required" "$reason" "athena-unload" 0
+
 require_env
 
 # Check for existing unload prefix unless --re-unload
 prefix="$(unload_prefix "$name")"
+
+# Sensitive prefix for sensitive SQL
+if is_sensitive_query "$sql"; then
+  prefix="${prefix%/}/sensitive/"
+fi
 if (( re_unload == 0 )); then
   if aws s3 ls "$prefix" >/dev/null 2>&1; then
     echo "error: $prefix already exists. Pass --re-unload to overwrite." >&2

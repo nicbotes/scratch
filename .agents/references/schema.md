@@ -12,6 +12,7 @@ Refresh with: `bash .agents/tools/athena-query.sh "SELECT table_name, column_nam
 | Timestamps (`timestamp(3)`) | ISO 8601 UTC strings. Wrap with `from_iso8601_timestamp()` (rules.md #3). |
 | JSON columns (`varchar`) | Use `JSON_EXTRACT_SCALAR()` / `JSON_EXTRACT()` (rules.md #5). Common names: `module`, `charges`, `data`, `app_data`, `module_data`, `input_data`, `config`, `settings`, `permissions`, `beneficiaries`, `covered_items`, `block_states`. |
 | PII tables | `policyholders`, `members`, `leads`, `payment_methods` (account numbers), `calls` (phone numbers). Handle carefully in exports. |
+| **Sensitive column metadata** | `references/pii-columns.json` is the machine-readable source — every `pii`, `restricted`, and `json_sensitive` column tagged. The PII firewall (rules.md #26–#28) reads it inline with `athena-query.sh` execution; see `references/pii-safety.md` for the full safety model. |
 
 ## Tables without `environment` column
 
