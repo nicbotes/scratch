@@ -119,7 +119,13 @@ cat > "$dir/manifest.json" <<EOF
 }
 EOF
 
-# Session log
-_session_log_extra "pii-lookup" "table=\"$table\"" "id_col=\"$id_col\"" "rows=$rows" "reason=$j_reason"
+# Session log — include the requested columns so the audit trail records
+# exactly which fields were fetched, not just "we did a lookup on table X".
+_session_log_extra "pii-lookup" \
+  "table=\"$table\"" \
+  "id_col=\"$id_col\"" \
+  "rows=$rows" \
+  "reason=$j_reason" \
+  "touched_columns=\"${columns:-*}\""
 
 echo "$csv_path"
