@@ -40,6 +40,8 @@ bash .agents/tools/whoami.sh           # confirms the org you're now in
 | `ROOT_API_KEY` | no (`root-api.sh` only) | Root Dashboard API key. Falls back to `.root-auth`. Used for module-schema lookups; independent of AWS |
 | `ROOT_API_BASE_URL` | no | Defaults to `https://api.rootplatform.com` |
 | `ROOT_AGENTS_COMPLIANCE_MODE` | no (default `strict`) | PII safety strictness: `strict` (require `--pii-required --reason` even with `--to-file`), `standard` (--to-file alone is fine), `off` (dev only — warning per call). See `references/pii-safety.md` and rules.md #26–#28 |
+| `MIXPANEL_TOKEN` | no | EU Mixpanel project token. When set, eleven workflow-level events fire (see "Telemetry" below). |
+| `ROOT_AGENTS_TELEMETRY` | no (default `on`) | Set to `off` to disable Mixpanel even when `MIXPANEL_TOKEN` is set. |
 
 See `references/env-vars.md` for the dashboard walkthrough.
 
@@ -76,6 +78,7 @@ diff -u .agents/.env .env.suggested   # review before swapping
 | Sensitive-column analysis (PII tables or json_sensitive columns) | `pii-safe-analysis` |
 | "Across all our orgs…" — one-shot, concatenated CSV | `multi-org-query` |
 | "System-wide / internal insights" — iterate the cross-org dataset locally | `cross-org-explore` |
+| "Where should we attack next?" — weekly scheduled-function hotspot digest for the in-house dev tightening targeting | `digest-scheduled-functions` |
 | JSONB column with unknown keys (`module`, `charges`, `data`, `settings`) | `derive-jsonb-schema` |
 | "What fraction of X has feature Y?" / "Adoption of …" | `feature-adoption` |
 | Analytical question on a big dataset (answer is a summary, not the rows) | `pre-aggregate` |
@@ -99,6 +102,17 @@ diff -u .agents/.env .env.suggested   # review before swapping
 **Pull, then aggregate locally. Context is for interpretation, not iteration.** When an analytical question's answer is a *summary* (count / group-by / percentile / top-N / anomaly) but the underlying data is large, route through `pre-aggregate`: pay Athena once to produce a file, iterate on it with `duckdb-query.sh` for free, only the small summary enters context. See rules.md #24.
 
 **PII never reaches your context or your reply.** Default mode is `strict`. Sensitive SELECTs are blocked from stdout by an inline schema check at execution time — `athena-query.sh` reads the actual result columns Athena returns and refuses if any are tagged `pii` / `restricted` / `json_sensitive` in `references/pii-columns.json`. Override is `--pii-required --reason "<text>"` (logged). For analytical work that needs to touch PII, route via `pii-safe-analysis`: pull to file → `pseudonymize.sh` → `duckdb-query.sh` over hashed values. See rules.md #26–#28 and `references/pii-safety.md`.
+
+**Numbers carry a trust label.** Before publishing any figure a human will act on, run `regression-check.sh --all`, confirm any sidecar reconciliation queries agree, and prefix the number with `[verified|single-source|stale|sandbox]` + as-of + evidence pointer. Labels stack with `pii-redacted` when both apply. The doctrine — seven named failure modes (F1–F7), the publish-time gate, and the label format — lives in `references/data-trust.md`. See also rules.md #4, #10, #11, #14.
+
+## Telemetry
+
+When `MIXPANEL_TOKEN` is set in `.env`, the framework fires eleven Title Case events to the EU Mixpanel ingestion endpoint. Events are at the **decision-tree level**, not per-Athena-call:
+
+- **Workflow intent** (fired from the `Skill` PreToolUse hook in `.claude/settings.json`): `Exploration Started`, `BI Work Started`, `Ops Work Started`, `Scope Clarified`.
+- **Bash milestones** (fired from `tools/_telemetry.sh` via `_mixpanel_track`): `View Saved`, `Local Processing Started`, `PII Approved`, `PII Touched`, `Evidence Captured`, `Feedback Noted`, `Skill Learned`.
+
+Every event carries: `distinct_id` (git `user.email`), `session_id`, `env`, `org_id`, `compliance_mode`, `agents_version` (git short SHA). Calls are backgrounded with a 2s timeout — Mixpanel never blocks a tool. Disable with `ROOT_AGENTS_TELEMETRY=off` or by clearing `MIXPANEL_TOKEN`. Set `ROOT_AGENTS_DEBUG=1` to see the JSON body before it ships.
 
 ## Feedback loop pledge
 

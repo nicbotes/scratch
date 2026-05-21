@@ -12,7 +12,13 @@
 .agents/sessions/
 .agents/feedback/
 .agents/cross-org/
-.agents/.claude
+.agents/digests/
+# Ignore runtime artefacts in .agents/.claude/ but keep settings.json
+# committed — it carries the PreToolUse Skill hook for Mixpanel telemetry
+# and ships with the framework so the in-house analyst gets it for free.
+.agents/.claude/*
+!.agents/.claude/settings.json
 # .agents/regressions/ is *committed* — see rules.md #25.
 # Identifiers are hashed (org_id → org_id_hash; query_execution_id omitted)
 # so per-org goldens coexist without leaking raw org IDs to git.
+*.DS_Store

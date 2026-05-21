@@ -10,6 +10,10 @@ export AGENTS_ROOT
 ROOT_ENV="${ROOT_ENV:-production}"
 export ROOT_ENV
 
+# Mixpanel telemetry — no-ops when MIXPANEL_TOKEN unset.
+# shellcheck disable=SC1091
+source "$AGENTS_ROOT/tools/_telemetry.sh"
+
 _session_id() {
   echo "${ROOT_AGENTS_SESSION_ID:-$(date -u +%Y-%m-%d)}"
 }
@@ -391,8 +395,17 @@ pii_required_or_fail() {
   local summary; summary="$(_sensitive_summary "$scan")"
   local mode="$ROOT_AGENTS_COMPLIANCE_MODE"
 
+  # Extract column lists once — used by every branch below.
+  local p r j jp
+  p="$(echo "$scan"  | grep -oE 'pii=[^ ]*'             | cut -d= -f2-)"
+  r="$(echo "$scan"  | grep -oE 'restricted=[^ ]*'      | cut -d= -f2-)"
+  j="$(echo "$scan"  | grep -oE 'json_sensitive=[^ ]*'  | cut -d= -f2-)"
+  jp="$(echo "$scan" | grep -oE 'json_paths=[^ ]*'      | cut -d= -f2-)"
+
   if [[ "$mode" == "off" ]]; then
     echo "[PII SAFETY OFF — DEV MODE] $summary" >&2
+    _mixpanel_track "PII Touched" "route=dev-mode-off" "tool=$tool" \
+      "pii_columns=$p" "restricted_columns=$r" "json_sensitive=$j"
     return 0
   fi
 
@@ -402,11 +415,7 @@ pii_required_or_fail() {
       echo "Touched: $summary" >&2
       exit 64
     fi
-    local p r j jp esc_reason
-    p="$(echo "$scan"  | grep -oE 'pii=[^ ]*'             | cut -d= -f2-)"
-    r="$(echo "$scan"  | grep -oE 'restricted=[^ ]*'      | cut -d= -f2-)"
-    j="$(echo "$scan"  | grep -oE 'json_sensitive=[^ ]*'  | cut -d= -f2-)"
-    jp="$(echo "$scan" | grep -oE 'json_paths=[^ ]*'      | cut -d= -f2-)"
+    local esc_reason
     esc_reason="$(printf '%s' "$reason" | sed 's/"/\\"/g')"
     _session_log_extra "$tool" \
       "pii_required=true" \
@@ -415,23 +424,22 @@ pii_required_or_fail() {
       "touched_restricted=\"$r\"" \
       "touched_json_sensitive=\"$j\"" \
       "touched_json_paths=\"$jp\""
+    _mixpanel_track "PII Approved" "tool=$tool" "reason=$reason" \
+      "pii_columns=$p" "restricted_columns=$r" "json_sensitive=$j"
     return 0
   fi
 
   # No override and the query is sensitive.
   if [[ "$mode" == "standard" ]] && (( override_ok == 1 )); then
     # standard + --to-file is acceptable; log it (with touched columns).
-    local p r j jp
-    p="$(echo "$scan"  | grep -oE 'pii=[^ ]*'             | cut -d= -f2-)"
-    r="$(echo "$scan"  | grep -oE 'restricted=[^ ]*'      | cut -d= -f2-)"
-    j="$(echo "$scan"  | grep -oE 'json_sensitive=[^ ]*'  | cut -d= -f2-)"
-    jp="$(echo "$scan" | grep -oE 'json_paths=[^ ]*'      | cut -d= -f2-)"
     _session_log_extra "$tool" \
       "pii_to_file=true" \
       "touched_pii=\"$p\"" \
       "touched_restricted=\"$r\"" \
       "touched_json_sensitive=\"$j\"" \
       "touched_json_paths=\"$jp\""
+    _mixpanel_track "PII Touched" "route=to-file" "tool=$tool" \
+      "pii_columns=$p" "restricted_columns=$r" "json_sensitive=$j"
     return 0
   fi
 
@@ -593,6 +601,8 @@ pii_required_or_fail_inline() {
 
   if [[ "$mode" == "off" ]]; then
     echo "[PII SAFETY OFF — DEV MODE] $summary (result-schema check)" >&2
+    _mixpanel_track "PII Touched" "route=dev-mode-off" "tool=$tool" "inline_check=true" \
+      "pii_columns=$exec_pii" "restricted_columns=$exec_restricted" "json_sensitive=$exec_json_sens"
     return 0
   fi
 
@@ -612,6 +622,8 @@ pii_required_or_fail_inline() {
       "touched_restricted=\"$exec_restricted\"" \
       "touched_json_sensitive=\"$exec_json_sens\"" \
       "touched_json_paths=\"$sql_json_paths\""
+    _mixpanel_track "PII Approved" "tool=$tool" "reason=$reason" "inline_check=true" \
+      "pii_columns=$exec_pii" "restricted_columns=$exec_restricted" "json_sensitive=$exec_json_sens"
     return 0
   fi
 
@@ -623,6 +635,8 @@ pii_required_or_fail_inline() {
       "touched_restricted=\"$exec_restricted\"" \
       "touched_json_sensitive=\"$exec_json_sens\"" \
       "touched_json_paths=\"$sql_json_paths\""
+    _mixpanel_track "PII Touched" "route=to-file" "tool=$tool" "inline_check=true" \
+      "pii_columns=$exec_pii" "restricted_columns=$exec_restricted" "json_sensitive=$exec_json_sens"
     return 0
   fi
 

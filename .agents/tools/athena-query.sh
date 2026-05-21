@@ -100,9 +100,6 @@ override_ok=0
 pii_required_or_fail_inline "$qid" "$sql" "$pii_required" "$reason" "athena-query" "$override_ok"
 total_rows="${LAST_QUERY_ROWS:-0}"
 
-# Fetch the full CSV first (we always need it; Athena already wrote it to S3)
-csv="$(fetch_results "$qid")"
-
 # Format the CSV per --format (always operates on full data; truncation is a
 # separate post-step keyed on rows)
 format_csv() {
@@ -146,8 +143,18 @@ s3_uri="$(aws athena get-query-execution --query-execution-id "$qid" \
 
 # --to-file: write full result, stdout = locator only
 if [[ -n "$to_file" ]]; then
-  formatted="$(format_csv "$format" "$csv")"
-  printf '%s\n' "$formatted" > "$to_file"
+  if [[ "$format" == "csv" ]]; then
+    # Stream the CSV from S3 directly to disk. Buffering it in a bash variable
+    # first xrealloc'd at ~700 MB on macOS (e.g. cross-org pulls for high-volume
+    # high-volume customer orgs). Non-CSV formats still buffer because format_csv
+    # is string-based — raise a follow-up the day someone --to-file's a
+    # multi-hundred-MB JSON/TSV.
+    fetch_results "$qid" > "$to_file"
+  else
+    csv="$(fetch_results "$qid")"
+    formatted="$(format_csv "$format" "$csv")"
+    printf '%s\n' "$formatted" > "$to_file"
+  fi
   bytes="$(wc -c < "$to_file" | tr -d ' ')"
 
   # Fallback row count: Athena's Statistics.OutputRows is null for queries whose
@@ -162,9 +169,17 @@ if [[ -n "$to_file" ]]; then
     (( file_lines > 0 )) && rows=$(( file_lines - 1 ))
   fi
 
+  _mixpanel_track "Local Processing Started" "tool=athena-query" \
+    "rows=$rows" "bytes=$bytes" "format=$format" \
+    "file=$(basename "$to_file")"
+
   echo "$to_file rows=$rows bytes=$bytes s3_uri=$s3_uri"
   exit 0
 fi
+
+# Stdout path: fetch the full CSV into memory for in-bash truncation / format.
+# Stdout output is row-capped (rules.md #23), so the in-memory cost is bounded.
+csv="$(fetch_results "$qid")"
 
 # Determine whether to truncate
 truncate_to=""

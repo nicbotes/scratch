@@ -34,7 +34,15 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 
 11. **Named-consumer output is evidence.** Always route through `export-results.sh` so every CSV has a sibling `manifest.json` (org id, env, sql, query id, sha256, row count). "Named consumer" means: a report, a shared document, a human who will act on the number, a downstream pipeline, or anything the agent will reference back to itself in a later turn. Default posture: **if you ran more than one query to produce an answer, write the evidence before presenting findings.** Stdout-only is fine for one-shot lookups; for assembled analyses it loses the audit trail and forces a re-run when the result needs to be shared. Compliance evidence is the strict case — never exempt. For analytical reports the rule is "do this by default; exemption requires a one-line reason in the reply".
 
-12. **Observe friction in real time.** If a skill description didn't match, a reference was re-read, a tool flag was missing, or a gotcha tripped you — call `feedback-note.sh` **before** moving on. One note per event.
+12. **Observe friction in real time.** Call `feedback-note.sh` **before** moving on whenever any of these happens — one note per event:
+    - a tool errored, refused, or behaved unexpectedly (silent flag-eating, wrong format, missing affordance)
+    - you retried or restructured a query because the first version was wrong
+    - an assumption about schema, JSON key naming, or data shape turned out to be incorrect
+    - a skill description didn't fire when it should have, or fired when it shouldn't
+    - a reference was opened more than once this session
+    - a discovery is genuinely reusable across sessions (use `--kind success-pattern`)
+
+    Do not batch. Do not editorialise. Do not write the fix — that is `retro`'s job at end of session.
 
 13. **Retro never edits live files.** `retro` writes patches under `.agents/proposals/`. Live skills/tools/rules change only through normal review.
 

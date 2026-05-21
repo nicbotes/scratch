@@ -70,26 +70,28 @@ universal_dim=$(find "$AGENTS_ROOT/bi" -maxdepth 1 -name 'dim_*.md' 2>/dev/null 
 universal_ops=$(find "$AGENTS_ROOT/ops" -maxdepth 1 -name 'ops_*.md' 2>/dev/null | wc -l | tr -d ' ')
 echo "  Universal:    $universal_fact rp_fact_*, $universal_dim rp_dim_*, $universal_ops rp_ops_*"
 
-# Per-client breakdown
+# Per-client breakdown — portable to bash 3.x (no associative arrays)
+client_count=0
+client_list=""
 if [[ -d "$AGENTS_ROOT/bi/clients" ]] || [[ -d "$AGENTS_ROOT/ops/clients" ]]; then
-  client_count=0
-  declare -A client_views
-  for client_dir in "$AGENTS_ROOT/bi/clients"/*/ "$AGENTS_ROOT/ops/clients"/*/; do
-    [[ -d "$client_dir" ]] || continue
-    slug="$(basename "$client_dir")"
-    [[ "$slug" == ".gitkeep" || "$slug" == "*" ]] && continue
-    view_count=$(find "$client_dir" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
-    if (( view_count > 0 )); then
-      client_views[$slug]=$(( ${client_views[$slug]:-0} + view_count ))
-    fi
-  done
-  client_count=${#client_views[@]}
+  # Collect slug:count lines, one per slug, summed across bi/ and ops/.
+  client_tally="$(
+    for client_dir in "$AGENTS_ROOT/bi/clients"/*/ "$AGENTS_ROOT/ops/clients"/*/; do
+      [[ -d "$client_dir" ]] || continue
+      slug="$(basename "$client_dir")"
+      [[ "$slug" == ".gitkeep" || "$slug" == "*" ]] && continue
+      vc=$(find "$client_dir" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+      (( vc > 0 )) && printf '%s %s\n' "$slug" "$vc"
+    done \
+    | awk '{ counts[$1] += $2 } END { for (s in counts) printf "%s:%d ", s, counts[s] }'
+  )"
 
-  if (( client_count > 0 )); then
-    client_list=""
-    for slug in "${!client_views[@]}"; do
-      client_list+="$slug:${client_views[$slug]} "
-    done
+  if [[ -n "$client_tally" ]]; then
+    client_list="$client_tally"
+    # Count tokens in client_tally
+    # shellcheck disable=SC2086
+    set -- $client_tally
+    client_count=$#
     echo "  Per-client:   $client_count clients ($client_list)"
   else
     echo "  Per-client:   none"

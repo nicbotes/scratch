@@ -45,6 +45,7 @@ Today the framework happily accumulates `fact_*`, `dim_*`, and `ops_*_view` defi
 - **Promotion archive.** When `retro` promotes a learned skill to canonical, archive the original under `.agents/promoted/<ts>-<name>.md` so the team can see what discoveries became canonical and when.
 - **Lineage for any output.** Given any committed artefact (`fact_*_view`, regression golden, evidence folder), an agent should be able to trace back: which session created it, which task triggered it, which input tables it depends on, which downstream consumers exist. The session log + manifests have enough information; what's missing is a `lineage.md` skill that traverses them.
 - **Weekly digest.** A scheduled (or hand-run) skill that emits "what changed this week" — new views, new goldens, promoted learned skills, deleted learned skills, top-5 queried views, total scan cost. Lives in `.agents/digests/<week>.md`.
+- **`tools/trust-audit.sh`** — parallel to `compliance-audit.sh`, for the data-trust doctrine in `references/data-trust.md`. Sweeps session logs for published-number events and surfaces which confidence label was applied, whether a reconciliation query agreed, whether a golden was green at publish time, and whether the manifest was written. Output: a markdown table the team can review monthly. Trigger: ≥3 retro notes of the form "we shipped a `verified` number that turned out wrong" — i.e. the discipline isn't catching enough cases and we need after-the-fact inspection.
 
 ---
 
@@ -98,6 +99,7 @@ The parent `AGENTS.md` becomes a thin router: identify the audience, hand off.
 - **Test fixtures for the framework itself.** A synthetic Athena (DuckDB pointed at a local Parquet fixture) so the framework's tools can be unit-tested without an AWS round-trip. Critical once the codebase grows past v1.
 - **Pre-commit hook for view PRs.** Before merging a `fact_*_view` change, run `regression-check --all` and require all goldens pass. Goes into a `.git/hooks/pre-commit` or a GitHub Action.
 - **Cost annotations in views.** When `save-view.sh` persists a view, capture the `bytes_scanned` from its first run as an annotation in the sibling `.agents/bi/<name>.md` doc. Lets the next agent see "this view scans ~500 MB per refresh" without re-running.
+- **`tools/publish-check.sh`** — wraps the publish-time gate from `references/data-trust.md` into one command: runs `profile-table` on contributing tables, executes any documented reconciliation queries in the relevant sidecar, runs `regression-check --all`, confirms the manifest was written, and emits a ready-to-paste confidence label. Don't build until the discipline has landed as policy and observe notes show the steps are being skipped — premature mechanisation would freeze a doctrine that's still settling.
 
 ---
 

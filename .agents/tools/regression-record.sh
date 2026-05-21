@@ -144,4 +144,9 @@ cat > "$out" <<EOF
 }
 EOF
 
+_mixpanel_track "Evidence Captured" "tool=regression-record" \
+  "golden_name=$name" "org_id_hash=$org_hash" \
+  "re_recorded=$([[ $re_record -eq 1 ]] && echo true || echo false)" \
+  "data_scanned_bytes=$bytes"
+
 echo "recorded: $out"

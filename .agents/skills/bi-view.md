@@ -41,7 +41,8 @@ You are building the analytical layer. Discipline matters here — these views g
    - **Consumers** (which dashboards / tools read it)
    - **SCD type** chosen
 10. **Pin a regression golden.** When the view is stable, record at least one deterministic golden against a fixed historical window (see `regression-test`) — typically the row count or a key aggregate for a single closed quarter.
-11. Hand off to `/dev-data-adapter` for the BI-tool wiring (JDBC/ODBC). The agent framework's job ends at the modelled view.
+11. **Document at least one reconciliation query.** A reconciliation SQL re-derives a key measure from an independent path — different source table, different join logic, different aggregation — and produces the same number as the view (within stated tolerance). A regression golden guards drift *over time*; a reconciliation guards drift *across paths*. Both are defaults. Write the SQL in the sidecar under a "Reconciliation queries" section, one block per measure. Reconciliation SQL must be aggregate-shaped and PII-clean (rules #15, #26). For a per-client `rp_fact_<entity>_<client>_view`, the reconciliation typically joins the universal fact view with `rp_dim_client_terms_view` to confirm the commercial-model output matches a hand-derivation from contract terms. See `references/data-trust.md` (F6) for the why.
+12. Hand off to `/dev-data-adapter` for the BI-tool wiring (JDBC/ODBC). The agent framework's job ends at the modelled view.
 
 **Promoting from a `rp_scratch_<ns>_*_view`?** Create the canonical `rp_fact_/rp_dim_*_view` first (running both for one snapshot is fine), confirm any consumers have switched, then `drop-view.sh rp_scratch_<ns>_<body>_view`. Never rename in place — shared consumers may already be referencing the scratch path, and Athena view DDL isn't transactional.
 
