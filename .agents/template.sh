@@ -31,6 +31,10 @@
 #   .agents/proposals/*                 (retro proposal outputs)
 #   .agents/sessions/, feedback/, evidence/, sensitive/  (gitignored anyway)
 #   .agents/references/clients.txt      (reset to the example-only stub)
+#   .agents/references/pii-columns.json  (reset to a domain-agnostic sample
+#                                         so the framework's PII firewall
+#                                         doesn't fire on the wrong columns
+#                                         for non-insurance data sources)
 #
 # What's optional:
 #   git init in the new directory (prompted)
@@ -186,6 +190,56 @@ cat > "$agents/references/clients.txt" <<'STUB'
 #   globalcorp   # GlobalCorp Re — XOL treaty, attachment 100k
 STUB
 
+# Reset references/pii-columns.json to a domain-agnostic sample. The
+# in-tree version is insurance-specific (policyholders, claims, modules);
+# a new project might be templating onto Zendesk, GitHub, Mixpanel,
+# Stripe, or anything else — the wrong tags would either fire false-
+# positives or miss real PII. The sample below demonstrates the three
+# sensitivity buckets with placeholder tables; the new developer adapts
+# to their actual schema. See references/pii-safety.md for the policy.
+cat > "$agents/references/pii-columns.json" <<'JSON'
+{
+  "_comment": "PII / restricted sensitivity tags per <table>.<column>. The SQL firewall in tools/_lib.sh::scan_sql_for_sensitivity reads this to gate sensitive queries (rules.md #26-#28).",
+  "_adapt_for_your_data_source": "This is a SAMPLE — replace the example tables below with your own data source's tables and columns. Until you do, the firewall will only fire on the example_* tables (which presumably don't exist in your workgroup), so PII will pass through ungated. Adapt this file BEFORE running queries against real data.",
+  "_examples_by_domain": {
+    "zendesk":   ["users.email (pii)", "users.phone (pii)", "tickets.requester_email (pii)", "tickets.description (json_sensitive — free text may contain PII)"],
+    "github":    ["users.email (pii)", "commits.author_email (pii)", "issues.body (json_sensitive — free text)"],
+    "mixpanel":  ["events.distinct_id (pii)", "events.email (pii)", "events.properties (json_sensitive)", "events.ip_address (pii)"],
+    "stripe":    ["customers.email (pii)", "customers.name (pii)", "charges.card.last4 (restricted)", "charges.metadata (json_sensitive)"],
+    "insurance": ["policyholders.first_name (pii)", "policyholders.identification_number (pii)", "policies.module (json_sensitive)", "payment_methods.account_number (restricted)"]
+  },
+  "_sensitivity_values": {
+    "pii":            "Directly identifies a person — names, emails, IDs, phone, address, DOB",
+    "restricted":     "Sensitive non-identifying — account numbers, medical answers, behavioural, financial",
+    "json_sensitive": "JSON-bearing column whose contents may contain PII — JSON_EXTRACT is gated until derive-jsonb-schema tags safe keys"
+  },
+  "tables": {
+    "example_users": {
+      "columns": {
+        "email":      { "sensitivity": "pii" },
+        "full_name":  { "sensitivity": "pii" },
+        "phone":      { "sensitivity": "pii" },
+        "profile":    { "sensitivity": "json_sensitive" }
+      }
+    },
+    "example_events": {
+      "columns": {
+        "distinct_id": { "sensitivity": "pii" },
+        "ip_address":  { "sensitivity": "pii" },
+        "properties":  { "sensitivity": "json_sensitive" }
+      }
+    },
+    "example_payments": {
+      "columns": {
+        "account_number": { "sensitivity": "restricted" },
+        "card_last4":     { "sensitivity": "restricted" },
+        "metadata":       { "sensitivity": "json_sensitive" }
+      }
+    }
+  }
+}
+JSON
+
 # Strip any cross-org config example file remnants
 rm -f "$agents/orgs.csv" "$agents/.env" "$dest/.root-auth"
 
@@ -219,14 +273,33 @@ A new project initialised from the \`.agents\` framework template.
 
    You should see your org name and ID.
 
-3. **Get oriented — read these in order:**
+3. **Adapt to your data source.** The framework was built against an
+   AWS Athena / Root insurance schema, but the *patterns* (skills, rules,
+   PII firewall, regression goldens, pre-aggregate-locally) apply to any
+   structured data source. Three files need adapting before you query
+   real data:
+
+   - \`.agents/references/pii-columns.json\` — **SAMPLE.** Replace
+     \`example_users\` / \`example_events\` / \`example_payments\` with
+     your actual tables and columns. Until you do, the firewall won't
+     gate the right columns. See \`pii-safety.md\` for the policy.
+   - \`.agents/references/schema.md\` — currently a 1100-line Athena data
+     dictionary specific to Root insurance. If your data source is
+     different, regenerate it (the file header documents the pattern)
+     or replace with your own. The framework's tools that DESCRIBE
+     tables (\`profile-table.sh\`, \`glue-describe.sh\`) work
+     independently of this doc.
+   - \`.agents/references/examples.md\` — recipe queries for the
+     insurance schema. Adapt or replace.
+
+4. **Get oriented — read these in order:**
 
    - \`.agents/AGENTS.md\` — entry point: persona, env vars, decision tree
    - \`.agents/rules.md\` — 28 hard rules. Read once per session.
    - \`.agents/DESIGN.md\` — design history (why it's shaped the way it is)
    - \`.agents/FUTURE.md\` — menu of unbuilt ideas; pull when signal emerges
 
-4. **Check the framework's health:**
+5. **Check the framework's health:**
 
    \`\`\`bash
    bash .agents/tools/framework-status.sh
