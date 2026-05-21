@@ -43,7 +43,25 @@ Operational caches are intentionally not Kimball. They're the opposite — one r
    - **Ordering contract** (what "first" means)
 9. **Optional regression golden** — pin a historical count (e.g. "ops_failed_payments_to_retry had 142 rows on 2025-03-31") if you want drift alerts; not required.
 
-**Promoting from a `scratch_<ns>_*_view`?** Create the canonical `ops_*_view` first, confirm the downstream sink (Sheets / Zapier / dashboard) is pointing at the new name, then `drop-view.sh scratch_<ns>_<body>_view`. Never rename in place — the ops consumer may be polling the scratch path on a schedule.
+**Promoting from a `rp_scratch_<ns>_*_view`?** Create the canonical `rp_ops_*_view` first, confirm the downstream sink (Sheets / Zapier / dashboard) is pointing at the new name, then `drop-view.sh rp_scratch_<ns>_<body>_view`. Never rename in place — the ops consumer may be polling the scratch path on a schedule.
+
+## Per-client variant — for client-specific ops queues
+
+When an operational queue depends on a client's **commercial model** rather than a universal platform behaviour, it lives in the per-client layer.
+
+| Universal | Per-client |
+|---|---|
+| `rp_ops_failed_payments_to_retry_view` | `rp_ops_invoice_reconcile_acme_view` |
+| `.agents/ops/ops_failed_payments_to_retry.md` | `.agents/ops/clients/acme/ops_invoice_reconcile.md` |
+| Same retry policy for every client | ACME-specific reconciliation rules (their fee schedule, their threshold) |
+
+Build flow is identical to the universal variant — pre-filter, pre-join, rank by urgency, document the action — with three differences:
+
+1. **Run `scope-clarify`** first to confirm you're in per-client territory.
+2. **Save with the client flag**: `bash .agents/tools/save-view.sh --client acme ops_invoice_reconcile "<sql>"` → `rp_ops_invoice_reconcile_acme_view`.
+3. **Doc lives under `.agents/ops/clients/<slug>/<action>.md`** with the same shape (Action, Reader, Cadence, Downstream sink, Ordering contract) plus an extra line naming the client and the contract clause that drove the rule.
+
+→ See `references/per-client-analysis.md` for the full convention doc.
 
 ## Reference
 

@@ -84,10 +84,11 @@ The parent `AGENTS.md` becomes a thin router: identify the audience, hand off.
 
 ---
 
-## 7. Onboarding & discoverability
+## 7. Onboarding
 
 - **`skills/onboard.md`** — walks a new team member through: set env vars → `whoami` → first `run-query` → first `profile-data` → first `feature-adoption` → first regression golden. Each step ends with "you should see X; if not, check Y".
-- **`tools/framework-status.sh`** — single command health check. Prints: current org, last query time, count of canonical / learned skills, count of regressions (pass / fail breakdown), count of views by prefix, age of last retro proposal. Run at session start when something feels off.
+
+(`tools/framework-status.sh` shipped in Phase 8 — `bash .agents/tools/framework-status.sh` for the dashboard.)
 
 ---
 
@@ -115,14 +116,15 @@ Both point at the same Athena workgroup, the same `prod_lake` source tables. The
 
 What this session already produced is the **specification** for that dbt project. The views under `.agents/bi/` (`fact_payments_view.md`, `dim_payment_method_view.md`, `dim_product_view.md`) plus the regression goldens are essentially the contract a dbt staging/mart model would need to satisfy. Not wasted work — it's a prototype with explicit acceptance criteria.
 
-**Trigger signals to actually build the dbt project:**
+**Trigger signals to actually build the dbt project (`framework-status.sh` flags these):**
 
-- ≥3 `fact_*_view` / `dim_*_view` definitions are stable and referenced by ≥2 downstream consumers each.
+- ≥3 **per-client** `rp_fact_<entity>_<client>_view` definitions stable and referenced by ≥2 downstream consumers each. (Phase 8 introduced the per-client layer; that's the natural precursor to dbt — when client-bespoke logic stabilises across multiple clients, dbt's tests + lineage + scheduled refresh become worth the setup cost.)
+- ≥3 universal `rp_fact_*_view` / `rp_dim_*_view` definitions stable and referenced by ≥2 downstream consumers each.
 - A stakeholder asks for "model documentation" or "lineage" in a way that the `.agents/bi/` markdown can't satisfy.
 - The team wants scheduled refreshes with dependency-aware ordering, not ad-hoc `CREATE OR REPLACE VIEW`.
 - A second team (analytics, finance) needs read-only access to the mart on a contract — they shouldn't have to learn this framework to consume it.
 
-**`/dev-dbt` skill (the natural next addition).** Scaffolds a `dbt-athena` project alongside `.agents/`, reusing the same Athena workgroup and S3 staging bucket. Generates `sources.yml` from `references/schema.md`, and emits `staging/stg_*.sql` model files from existing `fact_*_view` / `dim_*_view` definitions in `.agents/bi/`. The regression goldens become dbt `tests:` blocks (row counts, sum checks, distinct-value counts). The sibling `.md` docs become `description:` fields in `schema.yml`. Effectively a one-shot migration from prototype to production model.
+**`/dev-dbt` skill (the natural next addition).** Scaffolds a `dbt-athena` project alongside `.agents/`, reusing the same Athena workgroup and S3 staging bucket. Generates `sources.yml` from `references/schema.md`, and emits `staging/stg_*.sql` model files from existing `rp_fact_*_view` / `rp_dim_*_view` definitions in `.agents/bi/` (universal) and `.agents/bi/clients/<slug>/*` (per-client → dbt model with `client` as a variable). The regression goldens become dbt `tests:` blocks (row counts, sum checks, distinct-value counts). The sibling `.md` docs become `description:` fields in `schema.yml`. Effectively a one-shot migration from prototype to production model.
 
 **Anti-pattern to avoid:** do not try to make `.agents/` *into* dbt. The two have different contracts. `.agents/` is agent-driven and proposes changes; dbt is code-reviewed and merged like any other repo. Bolting dbt's compile/run/test machinery into bash tools here would reinvent the wheel badly. Stand up a real dbt project when the signal arrives.
 

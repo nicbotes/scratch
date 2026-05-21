@@ -43,7 +43,28 @@ You are building the analytical layer. Discipline matters here — these views g
 10. **Pin a regression golden.** When the view is stable, record at least one deterministic golden against a fixed historical window (see `regression-test`) — typically the row count or a key aggregate for a single closed quarter.
 11. Hand off to `/dev-data-adapter` for the BI-tool wiring (JDBC/ODBC). The agent framework's job ends at the modelled view.
 
-**Promoting from a `scratch_<ns>_*_view`?** Create the canonical `fact_/dim_*_view` first (running both for one snapshot is fine), confirm any consumers have switched, then `drop-view.sh scratch_<ns>_<body>_view`. Never rename in place — shared consumers may already be referencing the scratch path, and Athena view DDL isn't transactional.
+**Promoting from a `rp_scratch_<ns>_*_view`?** Create the canonical `rp_fact_/rp_dim_*_view` first (running both for one snapshot is fine), confirm any consumers have switched, then `drop-view.sh rp_scratch_<ns>_<body>_view`. Never rename in place — shared consumers may already be referencing the scratch path, and Athena view DDL isn't transactional.
+
+## Per-client variant — for commercial-model facts
+
+When the fact is **commercial-model-specific** (invoicing, Bordereau, ceded premium, profit share) it lives in the per-client layer, not the universal one. Same Kimball discipline (declared grain, conformed dimensions, named typed measures, regression golden) — scoped to one client.
+
+| Universal | Per-client |
+|---|---|
+| `rp_fact_payments_view` | `rp_fact_invoice_acme_view` |
+| `.agents/bi/fact_payments_view.md` | `.agents/bi/clients/acme/fact_invoice.md` |
+| Same for every client; reads platform tables | Reads from universal views + client-specific terms; ACME's contract shapes the output |
+
+Build flow:
+1. **Run `scope-clarify`** first if you got here from a "client X's invoice/Bordereau" question — confirms you're in per-client territory and the slug is registered.
+2. **Steps 1–10 above** still apply (grain, facts, dimensions, conformed-dim discipline, no `SELECT *`, premortem, regression golden).
+3. **Save with the client flag**: `bash .agents/tools/save-view.sh --client acme fact_invoice "<sql>"` → `rp_fact_invoice_acme_view`.
+4. **Doc lives under `.agents/bi/clients/<slug>/<entity>.md`** — the filename encodes the entity, the path encodes the client.
+5. **When ≥3 clients have stable bespoke views with ≥2 downstream consumers each**, `framework-status.sh` flags the dbt promotion path (FUTURE.md §9). Don't pre-emptively build dbt; wait for the signal.
+
+Worth doing once: a conformed `rp_dim_client_terms_view` (or per-client `rp_dim_client_terms_<client>_view` if the shape differs) that holds the parameters (cession %, commission, fee schedule) so every `rp_fact_invoice_<client>_view` joins to it instead of hard-coding numbers. Cession % differing by client doesn't justify three full fact views — it justifies one terms dim and three thin per-client facts.
+
+→ See `references/per-client-analysis.md` for the full convention doc and graduation path.
 
 ## Reference
 
