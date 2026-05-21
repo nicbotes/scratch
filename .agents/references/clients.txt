@@ -1,0 +1,13 @@
+# Client slug registry — Phase 8
+#
+# One slug per line. Optional inline comment after #. Slugs must match
+# ^[a-z][a-z0-9-]*$ (kebab-case, starts with a letter).
+#
+# save-view.sh --client <slug> warns when the supplied slug isn't here.
+# The warning is a nudge, not an error — if you're adding a genuinely new
+# client, add the slug + a one-line description in this same commit.
+#
+# Example entries (uncomment when real clients exist):
+#   acme         # Acme Insurance — quota-share reinsurance, 30% ceded
+#   globalcorp   # GlobalCorp Re — XOL treaty, attachment 100k
+#   mutual       # Mutual of South — proportional treaty, 60% ceded, profit share

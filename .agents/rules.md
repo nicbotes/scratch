@@ -16,10 +16,12 @@ Hard rules. Read once per session. If a rule trips you up because it wasn't expl
 
 5. **JSON columns need `JSON_EXTRACT_SCALAR`.** Applies to `module`, `charges`, `policy_events.data`, and anything else stored as JSON VARCHAR. See `references/athena-sql.md`.
 
-6. **Views end in `_view` and encode intent by prefix.**
-   - `fact_*_view`, `dim_*_view` — Kimball/star analytical layer (see `bi-view`).
-   - `ops_*_view` — action-oriented operational caches (see `ops-dataset`).
-   - `scratch_<ns>_*_view` — exploratory, namespace required. The `<ns>` slug identifies the originator (analyst, branch, or example slug) so a teammate scanning `SHOW VIEWS` can tell "Nic's poke at churn" from production. Created via `save-view.sh --scratch [<ns>]`; cleaned up via `drop-view.sh`. Promote to `fact_/dim_/ops_` via `bi-view` or `ops-dataset` once intent and shape are stable.
+6. **Views end in `_view`, carry the `rp_` framework prefix, and encode intent by inner prefix.**
+   - **`rp_` framework prefix** — every view created by this framework is `rp_*_view`. Distinguishes framework-managed views from views created by the BI team, the data-engineering team, or other tooling pointed at the same Athena workgroup. Enforced (auto-prepended) by `save-view.sh`.
+   - `rp_fact_*_view`, `rp_dim_*_view` — Kimball/star analytical layer (see `bi-view`).
+   - `rp_ops_*_view` — action-oriented operational caches (see `ops-dataset`).
+   - `rp_scratch_<ns>_*_view` — exploratory, namespace required. The `<ns>` slug identifies the originator (analyst, branch, or example slug) so a teammate scanning `SHOW VIEWS` can tell "Nic's poke at churn" from production. Created via `save-view.sh --scratch [<ns>]`; cleaned up via `drop-view.sh`. Promote to `rp_fact_/rp_dim_/rp_ops_` via `bi-view` or `ops-dataset` once intent and shape are stable.
+   - **Per-client suffix** — `<client>` is an optional suffix on `fact_`/`dim_`/`ops_` for commercial-model views that diverge by client (invoicing, Bordereaux, ceded splits). `rp_fact_invoice_acme_view`, `rp_dim_product_segment_acme_view`, `rp_ops_invoice_reconcile_acme_view`. Added via `save-view.sh --client <slug>`. The slug is validated against `references/clients.txt`. See `references/per-client-analysis.md`.
    - Don't mix. A view is for re-aggregation **or** for direct human action **or** still in exploration — never two at once.
 
 7. **Never embed an `AWS_*` value in a query, filename, log line, or commit.** The session trace, manifests, and feedback notes never include credentials.

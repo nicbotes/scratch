@@ -25,12 +25,18 @@ The retro converts raw friction notes into concrete edit proposals. It **never e
 4. **Write each proposal under `.agents/proposals/<utc-ts>/`:**
    - `.agents/proposals/20260518T191500Z/skills__analyst-workflow.md.patch` — a unified diff (or a clearly-marked "before / after" block if the change is too structural for a diff).
    - `.agents/proposals/20260518T191500Z/RATIONALE.md` — one paragraph per proposal, linking back to the feedback entries by `ts` and `note`.
-5. **Learned-skills clustering pass.** List `.agents/skills/learned/*.md` and count `learned_skill_hit` lines per name in `sessions/*.jsonl`. For each:
+5. **Maturity-signal pass.** Read `bash .agents/tools/framework-status.sh` and act on the flags:
+   - **≥3 clients with stable bespoke views** → draft a `proposals/<ts>/promote-to-dbt.md` naming the clients, listing the per-client `rp_fact_*_view` set, and pointing at FUTURE.md §9 with the trigger criteria met. Don't propose the dbt build yet — propose the discussion ("the maturity signal has fired; the team should decide whether to start the dbt project this quarter").
+   - **Per-client folder with only stale `rp_scratch_*` views** → propose cleanup. Either promote a scratch to a stable per-client view, or drop scratches that haven't been touched in a sprint.
+   - **`rp_dim_*` count rising past 5 without a `rp_dim_date_view`** → propose adding the conformed date dimension. Cheap; used by every cohort/trend analysis.
+   - **Conformed dims layer emerging** (≥3 `rp_dim_*`) → if any new `rp_fact_*` view shipped this session that *doesn't* join to existing dims, propose a refactor to use them. Conformed-dim discipline only pays off if every fact uses the same dims.
+
+6. **Learned-skills clustering pass.** List `.agents/skills/learned/*.md` and count `learned_skill_hit` lines per name in `sessions/*.jsonl`. For each:
    - **High usage** (used this session, especially across multiple tasks) → draft a promotion patch under `proposals/<ts>/promote-learned-<name>.md`: move the file from `learned/` to canonical `skills/`, strip the "not yet curated" banner, tighten the description to canonical-skill style. Include the suggested edits to `AGENTS.md` decision tree if the learned skill warrants a row there.
    - **Low / zero usage** → draft a deletion proposal in `proposals/<ts>/delete-learned-<name>.md` with the rationale (e.g. "captured 2 sessions ago, never re-hit; either superseded or premature"). Better to remove than to drown the routing layer.
    - **Never edit `skills/learned/<name>.md` itself** — patches and rationale only.
-6. **Hand back a one-screen summary:** top 3 proposals (by note count, judgment, or learned-skill hit rate), total entries reviewed, files touched. The user applies the patches with normal review.
-7. **Never edit live files.** Rules.md #13. If a proposed change feels obvious enough to apply immediately, that's a signal to ask the user — not to bypass review.
+7. **Hand back a one-screen summary:** top 3 proposals (by note count, judgment, or learned-skill hit rate), total entries reviewed, files touched. The user applies the patches with normal review.
+8. **Never edit live files.** Rules.md #13. If a proposed change feels obvious enough to apply immediately, that's a signal to ask the user — not to bypass review.
 
 ## Reference
 

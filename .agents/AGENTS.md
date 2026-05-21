@@ -71,7 +71,8 @@ diff -u .agents/.env .env.suggested   # review before swapping
 | "Show me all data we hold on policy X / person Y" | `compliance-query` |
 | Reusable analytical layer for a BI tool / KPI dashboard | `bi-view` (Kimball: `fact_*`, `dim_*`) |
 | "The list of things ops needs to action" / flat denormalised feed | `ops-dataset` (`ops_*_view`) |
-| Working view I'm iterating on — not yet stable enough to promote | `save-view.sh --scratch [<ns>]` → `scratch_<ns>_*_view` |
+| Working view I'm iterating on — not yet stable enough to promote | `save-view.sh --scratch [<ns>]` → `rp_scratch_<ns>_*_view` |
+| Question names a specific client / commercial model (invoice, Bordereau, ceded split, profit share) | `scope-clarify` → routes to per-client `bi-view`/`ops-dataset` variant |
 | Sensitive-column analysis (PII tables or json_sensitive columns) | `pii-safe-analysis` |
 | "Across all our orgs…" — one-shot, concatenated CSV | `multi-org-query` |
 | "System-wide / internal insights" — iterate the cross-org dataset locally | `cross-org-explore` |
@@ -115,6 +116,9 @@ Before publishing any number a human will act on, run `bash .agents/tools/regres
 - `tools/` — bash scripts wrapping `aws athena` / `aws s3`. Composable.
 - `references/` — schema catalog, Athena SQL gotchas, env-var setup, feedback schema, example queries.
 - `regressions/<org_id_hash>/` — committed deterministic goldens, **per-org subfolder by hash** so multiple orgs coexist without leaking raw IDs to git. See rules.md #25.
+- `bi/clients/<slug>/`, `ops/clients/<slug>/` — per-client commercial-model views (invoicing, Bordereau, etc.). Lives alongside the universal `bi/`/`ops/`. See `references/per-client-analysis.md` and `skills/scope-clarify.md`.
+- `references/clients.txt` — registry of known client slugs. `save-view.sh --client <slug>` warns when the slug isn't here.
+- `tools/framework-status.sh` — one-screen maturity dashboard (deps, skill/tool counts, views by layer, regression goldens, maturity flags pointing at the next step). Run at session start when something feels off.
 - `sensitive/` — gitignored prefix for PII-bearing exports (`export-results.sh` when SQL touches sensitive columns; `pii-lookup.sh` results). Separate from `evidence/` for tighter access control downstream.
 - `bi/`, `ops/` — per-view documentation (grain, refresh, consumers). Scratch views are intentionally undocumented — they're ephemeral; if it earns a doc page, it's ready to be promoted.
 - `proposals/` — `retro` writes patches here for human review (never edits live files).
