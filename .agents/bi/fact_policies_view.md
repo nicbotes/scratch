@@ -93,3 +93,46 @@ Daily, in line with Root Platform snapshots.
 | `fact_policies_premium_sum` | SUM(monthly_premium_cents) for active policies, same window |
 
 Run with: `bash .agents/tools/regression-check.sh --all`
+
+## Reconciliation queries
+
+A regression golden guards drift over time; a reconciliation guards drift across paths. Each block below re-derives a measure from an **independent source / join logic** and must agree with the corresponding golden within the stated tolerance. See `references/data-trust.md` (F6) for the why.
+
+### Reconciles `fact_policies_active_count` — from `policy_events` (event-log derivation)
+
+Counts policies with an issuance event in the window and no subsequent terminal event. Independent of `policies.status` (which is the field the view filters on); a disagreement points to a stale-status bug or an event-log gap.
+
+```sql
+SELECT COUNT(DISTINCT pe.policy_id) AS active_count
+FROM policy_events pe
+WHERE pe.environment = 'production'
+  AND pe.event_type IN ('policy_issued', 'policy_reinstated')
+  AND date_format(pe.created_at, '%Y-%m-%d') >= '2020-01-01'
+  AND date_format(pe.created_at, '%Y-%m-%d') < '2026-01-01'
+  AND pe.policy_id NOT IN (
+    SELECT policy_id
+    FROM policy_events
+    WHERE environment = 'production'
+      AND event_type IN ('policy_cancelled', 'policy_lapsed', 'policy_expired', 'policy_not_taken_up')
+  );
+```
+
+**Expected agreement:** exact, unless the event log lags the status field by a snapshot. Tolerance ≤ 1 day's worth of state transitions; greater drift = investigate.
+
+### Reconciles `fact_policies_premium_sum` — from `policies` via in-force date logic (structural derivation)
+
+Sums `monthly_premium` for policies in force as-of `2026-01-01` (the window's upper bound) using date predicates instead of the `status = 'active'` filter. Independent of how `status` is maintained; surfaces cases where `status` and the date columns disagree.
+
+```sql
+SELECT SUM(monthly_premium) AS premium_sum_cents
+FROM policies
+WHERE environment = 'production'
+  AND flushed = false
+  AND from_iso8601_timestamp(start_date) < TIMESTAMP '2026-01-01 00:00:00'
+  AND (end_date IS NULL OR from_iso8601_timestamp(end_date) >= TIMESTAMP '2026-01-01 00:00:00')
+  AND (cancelled_at IS NULL OR cancelled_at >= TIMESTAMP '2026-01-01 00:00:00')
+  AND date_format(created_at, '%Y-%m-%d') >= '2020-01-01'
+  AND date_format(created_at, '%Y-%m-%d') < '2026-01-01';
+```
+
+**Expected agreement:** within ~2% — "in-force on date" and "status = active" diverge for policies in transitional states (`pending_initial_payment`, `not_taken_up`). State the divergence; sustained drift > 5% is a calibration bug, not noise.

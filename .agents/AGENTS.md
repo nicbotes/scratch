@@ -100,6 +100,8 @@ diff -u .agents/.env .env.suggested   # review before swapping
 
 **PII never reaches your context or your reply.** Default mode is `strict`. Sensitive SELECTs are blocked from stdout by an inline schema check at execution time — `athena-query.sh` reads the actual result columns Athena returns and refuses if any are tagged `pii` / `restricted` / `json_sensitive` in `references/pii-columns.json`. Override is `--pii-required --reason "<text>"` (logged). For analytical work that needs to touch PII, route via `pii-safe-analysis`: pull to file → `pseudonymize.sh` → `duckdb-query.sh` over hashed values. See rules.md #26–#28 and `references/pii-safety.md`.
 
+**Numbers carry a trust label.** Before publishing any figure a human will act on, run `regression-check.sh --all`, confirm any sidecar reconciliation queries agree, and prefix the number with `[verified|single-source|stale|sandbox]` + as-of + evidence pointer. Labels stack with `pii-redacted` when both apply. The doctrine — seven named failure modes (F1–F7), the publish-time gate, and the label format — lives in `references/data-trust.md`. See also rules.md #4, #10, #11, #14.
+
 ## Feedback loop pledge
 
 If anything in this framework felt wrong — a description that didn't fire, a reference you had to re-open, a rule you wished existed, a tool flag you needed — call `observe` immediately. One note per friction event. At end of session, run `retro` to turn those notes into proposed edits under `.agents/proposals/`. The cost of skipping is paying the same friction again next session.
