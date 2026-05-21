@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Mixpanel telemetry helper. Sourced by _lib.sh and by .claude hook scripts.
+#
+# Fires eleven Title Case events at decision-tree milestones (see AGENTS.md
+# "Telemetry"). Never blocks the caller: every track call is a backgrounded
+# curl with a 2s timeout. Silently no-ops when MIXPANEL_TOKEN is unset or
+# ROOT_AGENTS_TELEMETRY=off.
+
+MIXPANEL_API_URL="${MIXPANEL_API_URL:-https://api-eu.mixpanel.com/track}"
+ROOT_AGENTS_TELEMETRY="${ROOT_AGENTS_TELEMETRY:-on}"
+
+# Self-contained: provide AGENTS_ROOT and _session_id fallbacks so this file
+# can be sourced standalone (e.g. from a Claude Code hook script that
+# doesn't pull in _lib.sh).
+if [[ -z "${AGENTS_ROOT:-}" ]]; then
+  AGENTS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  export AGENTS_ROOT
+fi
+if ! declare -f _session_id >/dev/null 2>&1; then
+  _session_id() {
+    echo "${ROOT_AGENTS_SESSION_ID:-$(date -u +%Y-%m-%d)}"
+  }
+fi
+
+# Cache identity + version once per shell.
+if [[ -z "${ROOT_AGENTS_USER:-}" ]]; then
+  ROOT_AGENTS_USER="$(git config user.email 2>/dev/null || echo unknown)"
+  export ROOT_AGENTS_USER
+fi
+if [[ -z "${ROOT_AGENTS_VERSION:-}" ]]; then
+  ROOT_AGENTS_VERSION="$(git -C "$AGENTS_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+  export ROOT_AGENTS_VERSION
+fi
+
+# _mixpanel_track <Event Name> [k=v ...]
+# Values that parse as int/float are sent as numbers; everything else is a
+# string. Spaces in values are fine (passed via argv, not the shell).
+_mixpanel_track() {
+  [[ "$ROOT_AGENTS_TELEMETRY" == "off" ]] && return 0
+  [[ -z "${MIXPANEL_TOKEN:-}" ]] && return 0
+  command -v curl    >/dev/null 2>&1 || return 0
+  command -v python3 >/dev/null 2>&1 || return 0
+
+  local event="$1"; shift
+
+  local body
+  body="$(python3 - "$event" "$MIXPANEL_TOKEN" "$ROOT_AGENTS_USER" \
+    "${ROOT_AGENTS_VERSION:-unknown}" \
+    "$(_session_id)" \
+    "${ROOT_ENV:-unknown}" \
+    "${ROOT_ORG_ID:-unknown}" \
+    "${ROOT_AGENTS_COMPLIANCE_MODE:-unknown}" \
+    "$@" 2>/dev/null <<'PY' || true
+import json, sys, time, uuid
+args = sys.argv[1:]
+event, token, distinct_id, version, session_id, env, org_id, mode = args[:8]
+pairs = args[8:]
+
+props = {
+    "token": token,
+    "distinct_id": distinct_id,
+    "$insert_id": str(uuid.uuid4()),
+    "time": int(time.time()),
+    "session_id": session_id,
+    "env": env,
+    "org_id": org_id,
+    "compliance_mode": mode,
+    "agents_version": version,
+}
+
+for pair in pairs:
+    if "=" not in pair:
+        continue
+    k, v = pair.split("=", 1)
+    if not k:
+        continue
+    try:
+        props[k] = int(v)
+        continue
+    except ValueError:
+        pass
+    try:
+        props[k] = float(v)
+        continue
+    except ValueError:
+        pass
+    props[k] = v
+
+print(json.dumps([{"event": event, "properties": props}]))
+PY
+  )"
+
+  [[ -z "$body" ]] && return 0
+
+  if [[ "${ROOT_AGENTS_DEBUG:-0}" == "1" ]]; then
+    printf '[telemetry] %s\n' "$body" >&2
+  fi
+
+  # Fire-and-forget. Network failures, 4xx, slow Mixpanel — none of it
+  # surfaces to the analyst. 2s timeout caps the worst case.
+  (curl -sS -m 2 -X POST "$MIXPANEL_API_URL" \
+    -H 'Content-Type: application/json' \
+    -d "$body" >/dev/null 2>&1) &
+  return 0
+}

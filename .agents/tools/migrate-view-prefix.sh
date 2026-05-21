@@ -42,8 +42,12 @@ if [[ -z "$all_views" ]]; then
   exit 0
 fi
 
-# Convert tab-separated names to one-per-line
-mapfile -t views < <(printf '%s\n' "$all_views" | tr '\t' '\n')
+# Convert tab-separated names to an array (bash 3.x compatible — no mapfile).
+# aws --output text emits multiple names tab-separated on one line.
+views=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && views+=("$line")
+done < <(printf '%s\n' "$all_views" | tr '\t' '\n')
 
 # Filter to framework-managed shapes that need migrating
 declare -a to_rename

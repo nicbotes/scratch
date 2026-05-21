@@ -4,7 +4,7 @@
   "captured_by": "agent",
   "org_id_hash": "15cde1b60886bf98",
   "env": "production",
-  "sql": "SELECT status, COUNT(*) AS n FROM fact_payments_view WHERE date_format(created_at, '%Y-%m-%d') >= '2025-01-01' AND date_format(created_at, '%Y-%m-%d') < '2025-04-01' GROUP BY status ORDER BY status",
+  "sql": "SELECT status, COUNT(*) AS n FROM rp_fact_payments_view WHERE date_format(created_at, '%Y-%m-%d') >= '2025-01-01' AND date_format(created_at, '%Y-%m-%d') < '2025-04-01' GROUP BY status ORDER BY status",
   "result": "\"status\",\"n\"\n\"cancelled\",\"4\"\n\"failed\",\"30\"",
   "data_scanned_bytes": 98413,
   "re_recorded": false,

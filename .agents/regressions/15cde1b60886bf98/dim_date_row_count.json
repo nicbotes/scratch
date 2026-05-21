@@ -4,7 +4,7 @@
   "captured_by": "agent",
   "org_id_hash": "15cde1b60886bf98",
   "env": "production",
-  "sql": "SELECT COUNT(*) AS row_count FROM dim_date_view WHERE date_format(CAST(date_key AS TIMESTAMP), '%Y-%m-%d') >= '2010-01-01' AND date_format(CAST(date_key AS TIMESTAMP), '%Y-%m-%d') < '2031-01-01'",
+  "sql": "SELECT COUNT(*) AS row_count FROM rp_dim_date_view WHERE date_format(CAST(date_key AS TIMESTAMP), '%Y-%m-%d') >= '2010-01-01' AND date_format(CAST(date_key AS TIMESTAMP), '%Y-%m-%d') < '2031-01-01'",
   "result": "\"row_count\"\n\"7670\"",
   "data_scanned_bytes": 0,
   "re_recorded": false,

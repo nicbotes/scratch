@@ -90,4 +90,7 @@ mkdir -p "$dir"
 printf '{"ts":"%s","session":"%s","tool":"learn-skill","ok":true,"name":"%s"}\n' \
   "$ts" "$sid" "$name" >> "$dir/$sid.jsonl"
 
+_mixpanel_track "Skill Learned" "skill_name=$name" \
+  "from_task=${from_task:-none}"
+
 echo "learned skill written: $target"

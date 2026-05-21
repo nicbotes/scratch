@@ -50,4 +50,7 @@ printf '{"ts":"%s","session":"%s","kind":"%s","target":%s,"note":%s,"org_id":"%s
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sid" "$kind" "$n_target" "$n_note" "${ROOT_ORG_ID:-}" "${ROOT_ENV:-}" \
   >> "$dir/$sid.jsonl"
 
+_mixpanel_track "Feedback Noted" "note_kind=$kind" "target=$target" \
+  "length_chars=${#note}"
+
 echo "feedback noted: $kind -> $target"

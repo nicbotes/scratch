@@ -166,6 +166,11 @@ printf '{"ts":"%s","session":"%s","tool":"duckdb-query","ok":true,"ms":%s,"rows"
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$sid" "$ms" "$total_rows" \
   >> "$dir/$sid.jsonl"
 
+_mixpanel_track "Local Processing Started" "tool=duckdb-query" \
+  "rows=$total_rows" "ms=$ms" \
+  "to_file=$([[ -n "$to_file" ]] && echo true || echo false)" \
+  "format=$format"
+
 # --to-file: write the formatted full result, stdout = locator only.
 if [[ -n "$to_file" ]]; then
   formatted="$(format_csv "$format" "$csv")"

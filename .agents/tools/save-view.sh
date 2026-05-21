@@ -186,4 +186,15 @@ name="rp_$inner_name"
 
 require_env
 qid="$(run_athena "CREATE OR REPLACE VIEW \"$name\" AS $sql")"
+
+case "$inner_name" in
+  fact_*)    view_type=fact ;;
+  dim_*)     view_type=dim ;;
+  ops_*)     view_type=ops ;;
+  scratch_*) view_type=scratch ;;
+  *)         view_type=other ;;
+esac
+_mixpanel_track "View Saved" "view_name=$name" "view_type=$view_type" \
+  "client=${client_slug:-none}" "scratch=$([[ $scratch_mode -eq 1 ]] && echo true || echo false)"
+
 echo "view created: $name (query=$qid)"
