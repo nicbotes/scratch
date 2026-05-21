@@ -1,0 +1,17 @@
+# Credentials
+.env
+
+# Landed data (raw fetches + DuckDB database). Never commit.
+data/raw/
+data/db/
+!data/raw/.gitkeep
+!data/db/.gitkeep
+
+# Runtime artefacts (gitignored entirely; materialise on first use)
+sessions/
+feedback/
+evidence/
+sensitive/
+
+# Macos
+.DS_Store

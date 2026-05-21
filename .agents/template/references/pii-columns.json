@@ -1,0 +1,55 @@
+{
+  "_comment": "Sensitivity metadata read by the framework's PII firewall (tools/_lib.sh). The raw_github_* entries make the firewall fire on the bundled worked example; the example_* tables are placeholders for adopters to replace with their real schema.",
+  "_sensitivity_values": {
+    "pii": "Directly identifies a person (names, emails, IDs, phone, address, DOB).",
+    "restricted": "Sensitive non-identifying (account numbers, medical, behavioural, financial).",
+    "json_sensitive": "JSON/STRUCT-bearing column whose contents may contain PII. Requires safe-key discovery before bulk extraction."
+  },
+  "_examples_by_domain": {
+    "github": ["raw_github_pulls.user.email", "raw_github_pulls.user.login (often a real name)", "raw_github_pulls.body (free text)"],
+    "zendesk": ["raw_zendesk_tickets.requester.email", "raw_zendesk_tickets.description", "raw_zendesk_users.phone"],
+    "jira": ["raw_jira_issues.reporter.emailAddress", "raw_jira_issues.fields.description"],
+    "stripe": ["raw_stripe_customers.email", "raw_stripe_customers.metadata (json_sensitive)"],
+    "mixpanel": ["raw_mixpanel_users.email", "raw_mixpanel_users.properties (json_sensitive)"]
+  },
+  "_adapt_for_your_source": "Replace the example_* tables with your real ones. The raw_github_* entries are bundled with the worked example; keep them if you use the GitHub source, remove if you're targeting a different API.",
+  "tables": {
+    "raw_github_pulls": {
+      "columns": {
+        "user":  { "sensitivity": "json_sensitive" },
+        "body":  { "sensitivity": "json_sensitive" },
+        "title": { "sensitivity": "json_sensitive" }
+      }
+    },
+    "raw_github_issues": {
+      "columns": {
+        "user":  { "sensitivity": "json_sensitive" },
+        "body":  { "sensitivity": "json_sensitive" },
+        "title": { "sensitivity": "json_sensitive" }
+      }
+    },
+    "example_users": {
+      "columns": {
+        "email":      { "sensitivity": "pii" },
+        "phone":      { "sensitivity": "pii" },
+        "first_name": { "sensitivity": "pii" },
+        "last_name":  { "sensitivity": "pii" },
+        "profile":    { "sensitivity": "json_sensitive" }
+      }
+    },
+    "example_events": {
+      "columns": {
+        "ip_address": { "sensitivity": "restricted" },
+        "user_agent": { "sensitivity": "restricted" },
+        "properties": { "sensitivity": "json_sensitive" }
+      }
+    },
+    "example_payments": {
+      "columns": {
+        "card_last4":      { "sensitivity": "restricted" },
+        "billing_address": { "sensitivity": "pii" },
+        "amount_cents":    { "sensitivity": null }
+      }
+    }
+  }
+}
