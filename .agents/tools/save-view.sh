@@ -50,6 +50,7 @@ while (( $# )); do
       client_slug="${2:-}"
       shift 2
       ;;
+    --) shift; positional+=("$@"); break ;;
     -*) echo "unknown flag: $1" >&2; exit 64 ;;
     *) positional+=("$1"); shift ;;
   esac
